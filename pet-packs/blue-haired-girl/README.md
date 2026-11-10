@@ -1,20 +1,46 @@
-# 小团团 · 待机动画包
+# 小团团 · DSH 独立宠物插件
 
-使用项目现有 pet pack 机制，独立于主宠物的动画池。包含一只默认显示在桌面左下角的宠物，仅播放待机动画；没有配置漫游、转身、点击或睡觉动作。
+包名：`dsh-pet-xiaotuantuan`。复用 `dsh-pet` 的桌宠引擎，单独提供“小团团”角色与透明待机与拖拽动画，默认显示在桌面左下角。
 
-## 独立配置
+## 安装
 
-本目录独立保存新宠物的配置和素材，不写入项目内置的 `dsh-pet/assets/config.jsonc`，也不自动安装到本机已有的 dsh-pet 用户目录。配置中的宠物实例 ID 为 `blue-haired-girl-1`，素材组名为 `blue-haired-girl`。
+1. 在 DSH 插件管理中先安装并启用 `dsh-pet`（0.4.7 或兼容的 0.4.x 版本）。
+2. 在“添加插件”的输入框粘贴 `dsh-pet-xiaotuantuan-0.1.1.tgz` 的**完整本地路径**，安装并启用；也支持直接填写本目录的完整路径。
+3. 启用后插件会自动刷新桌宠。若 DSH 提示需要重启，先重启；若窗口未出现，右键原桌宠选择“重载配置”。浏览器界面需刷新。
 
-```text
-pet/
-├── blue-haired-girl-config.json
-└── blue-haired-girl-animation/
-    └── 待机呼吸.webm
+本插件尚未发布到 npm，不能只输入包名下载。无需手动复制宠物文件，无需安装脚本审批。
+
+源码安装的等价命令（在仓库根目录执行）：
+
+```sh
+dsh plugin --profile desktop add ./pet-packs/blue-haired-girl
 ```
 
-素材为用户提供的 AI 生成视频《Q版角色10秒待机动画生成.mp4》加工结果：去除绿色背景、外围水印及脚下椭圆阴影，移除音轨，输出 640×360、24 fps、10 秒的 VP9 Alpha WebM。末尾 0.5 秒柔和回到起始姿态，改善循环接缝。
+## 启用、停用与数据
 
-`events.balance` 是现有配置校验要求的非空字段，使用本组待机素材兜底；该宠物的自动余额、碎碎念和工作状态联动均关闭，不会引用原角色素材。
+- 等待 `dsh-pet` 的宿主服务就绪后，才创建独立的 `blue-haired-girl` 宠物组；缺少依赖时保持等待。
+- 不修改原宠物的 `main-config.jsonc`、内置配置或动画池。
+- 平时播放待机动画，鼠标拖动时播放悬空蹬腿动画；自动余额、碎碎念、工作状态联动关闭。
+- 停用或卸载时隐藏本组并自动刷新桌宠，保留素材及用户修改过的大小、名称、位置；再次启用会恢复。自动刷新失败时可右键原桌宠选择“重载配置”。
+- 数据位于 `$DSH_HOME/dsh-pet/pet/`（默认 `~/.dsh/dsh-pet/pet/`）：启用配置是 `blue-haired-girl-config.json`，停用后保存为同名文件加 `.disabled`；素材在 `blue-haired-girl-animation/`。
+- 如果此前手动安装了同名宠物包，本插件会报冲突并保留原文件；先备份移走旧组再启用。一个 DSH 数据目录只在一个 profile 中启用本插件。
 
-Chrome / Edge / Electron 可播放透明 WebM；本包没有提供 Safari 所需的 HEVC Alpha MOV。原始视频和角色图由用户提供，其授权不由原项目 MIT 许可代替。
+更新旧版时，用新 `.tgz` 安装包重新安装本插件。首次升级会为旧版的空拖拽动画池补入新动作，保留其他设置和已有的自定义拖拽动作。
+
+## 开发与打包
+
+```sh
+npm ci
+npm test
+npm pack
+```
+
+使用原生 JavaScript，无构建步骤；npm 打包自动运行测试。当前配置面向 DSH 0.2.2-rc.1，未声明其他版本已经实测兼容。
+
+动画为 640×360、24 fps、10 秒 VP9 Alpha WebM，无音轨；已去绿色背景、外围水印及脚下椭圆阴影，末尾 0.5 秒过渡回起始姿态。拖拽动画为同画布的 4 秒、24 fps VP9 Alpha WebM，无音轨；已去背景、外围水印及头顶细绳，末尾 0.25 秒过渡回起始姿态。
+
+支持 Chromium / Electron；未提供 Safari 所需的 HEVC Alpha MOV。
+
+## 许可
+
+插件代码沿用本仓库 MIT 许可。角色与动画由用户提供，素材授权另计，不由代码许可代替。原桌宠引擎来自 [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet)。
