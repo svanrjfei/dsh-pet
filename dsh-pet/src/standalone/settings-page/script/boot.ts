@@ -93,6 +93,7 @@ async function loadPets() {
     if (!config || config.ok === false || !config.main) throw new Error('读取配置失败：宿主没有返回可用的配置。');
     state.meta = meta;
     initDrafts(config);
+    if (COMPANION_SETTINGS) await loadPickupSchedule();
     renderPetsPanel();
     byId('pet-save').disabled = false;
     setStatus(status, '');

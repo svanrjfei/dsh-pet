@@ -200,15 +200,8 @@ test('设置页对话面板脚本：产物缺失时 → 404 并提示重新构�
   }
 });
 
-test('companion settings page is public but schedule data and writes require authentication', async () => {
+test('companion schedule data and writes require authentication', async () => {
   const server = await start([
-    {
-      kind: 'exact',
-      path: '/xiaotuantuan/',
-      handler: (_req, res) => {
-        res.end('settings');
-      },
-    },
     {
       kind: 'exact',
       path: '/xiaotuantuan/schedule',
@@ -218,7 +211,6 @@ test('companion settings page is public but schedule data and writes require aut
     },
   ]);
   try {
-    assert.equal((await fetch(server.base + '/xiaotuantuan/')).status, 200);
     for (const method of ['GET', 'PUT']) {
       const path = server.base + '/xiaotuantuan/schedule';
       assert.equal((await fetch(path, { method })).status, 403);

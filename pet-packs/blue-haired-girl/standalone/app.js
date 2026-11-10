@@ -1,8 +1,6 @@
-import { shell } from 'electron';
 import { writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { apply } from '../index.js';
-import { settingsPage } from './settings-page.js';
 
 export function applyCompanion({ context, origin, token }) {
   const runtime = join(process.env.DSH_HOME, 'app-runtime.json');
@@ -22,19 +20,5 @@ export function applyCompanion({ context, origin, token }) {
     if (result.ok === false) throw new Error('桌宠操作未完成');
     return result;
   };
-  context.ctx.effect(() => context.ctx.webServer.register({
-    kind: 'exact', path: '/xiaotuantuan/',
-    handler(req, res) {
-      if (req.method !== 'GET') { res.writeHead(405); res.end(); return; }
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' });
-      res.end(settingsPage);
-    },
-  }));
-  apply({
-    ...context.ctx, connection, petRequest,
-    openScheduleSettings: () => {
-      // 令牌放 URL 片段，页面用请求头换 cookie 后清掉片段。
-      void shell.openExternal(`${origin}/xiaotuantuan/#token=${token}`);
-    },
-  });
+  apply({ ...context.ctx, connection, petRequest });
 }

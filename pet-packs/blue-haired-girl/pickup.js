@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
 const label = '小团团·接你下班';
-const settingsLabel = '小团团·定时设置';
 
 export async function playPickup(api, pet, signal) {
   const target = `pet=${encodeURIComponent(pet)}&surface=desktop`;
@@ -19,19 +18,15 @@ export async function playPickup(api, pet, signal) {
   });
 }
 
-export async function runPickupMenu(api, petIds, signal, warn, openSettings) {
+export async function runPickupMenu(api, petIds, signal, warn) {
   // 每次启用独立 owner，旧连接异步注销不会删掉刚启用的新菜单。
   const owner = `xiaotuantuan-${randomUUID()}`;
   let playing;
   try {
     signal.throwIfAborted();
-    await api('menu/item', { method: 'POST', body: { owner, labels: openSettings ? [label, settingsLabel] : [label], target: 'desktop' }, signal });
+    await api('menu/item', { method: 'POST', body: { owner, labels: [label], target: 'desktop' }, signal });
     while (!signal.aborted) {
       const { events } = await api(`menu/events?owner=${owner}&wait=10000`, { signal });
-      if (openSettings && petIds().includes(events?.[settingsLabel])) {
-        openSettings();
-        continue;
-      }
       const pet = events?.[label];
       if (!pet || !petIds().includes(pet)) continue;
       playing?.abort();

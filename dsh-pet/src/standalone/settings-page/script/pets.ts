@@ -120,6 +120,7 @@ function renderPetsPanel() {
   }
   if (keys.length > 1) host.append(entryTabs(keys));
   if (!COMPANION_SETTINGS || state.entry !== 'main') host.append(petCard());
+  if (COMPANION_SETTINGS && state.entry === 'blue-haired-girl') host.append(pickupScheduleCard());
   if (state.entry === 'main') {
     for (const builder of globalCards()) host.append(builder());
   } else if (!COMPANION_SETTINGS) {
@@ -169,6 +170,7 @@ async function savePets() {
   saveBtn.disabled = true;
   setStatus(status, '正在保存…');
   try {
+    if (COMPANION_SETTINGS && state.entry === 'blue-haired-girl') validatePickupSchedule();
     let merged;
     if (state.entry === 'main') {
       merged = await callApi('PUT', '/config', petsBody());
@@ -193,6 +195,7 @@ async function savePets() {
       setStatus(status, (merged && (merged.message || merged.reason)) || '宿主拒绝了这次保存。', 'error');
       return;
     }
+    if (COMPANION_SETTINGS && state.entry === 'blue-haired-girl') await savePickupSchedule();
     initDrafts(merged);
     markDirty(false);
     renderPetsPanel();

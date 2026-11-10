@@ -23,6 +23,7 @@ import { modelPickerScript } from './settings-page/script/model-picker.ts';
 import { overlayScript } from './settings-page/script/overlay.ts';
 import { petCardScript } from './settings-page/script/pet-card.ts';
 import { petsScript } from './settings-page/script/pets.ts';
+import { pickupScheduleScript } from './settings-page/script/pickup-schedule.ts';
 import { widgetsScript } from './settings-page/script/widgets.ts';
 import { settingsPage } from './settings-page/chrome.ts';
 import { settingsStyle } from './settings-page/style.ts';
@@ -51,6 +52,7 @@ export const settingsScript = [
   avatarScript({ logoUrl: LOGO_URL, maxSide: AVATAR_MAX_SIDE_PX }),
   petCardScript(companionSettings),
   petsScript(companionSettings),
+  companionSettings ? pickupScheduleScript() : '',
   globalsScript(),
   modelPickerScript(),
   aiScript(),

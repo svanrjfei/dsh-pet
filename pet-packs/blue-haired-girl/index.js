@@ -55,7 +55,6 @@ export function apply(ctx) {
   const { webServer, connection, logger } = ctx;
   // Cordis 会拦截未知服务属性；独立应用的附加接口只从自有属性读取。
   const petRequest = Object.hasOwn(ctx, 'petRequest') ? ctx.petRequest : undefined;
-  const openScheduleSettings = Object.hasOwn(ctx, 'openScheduleSettings') ? ctx.openScheduleSettings : undefined;
   const refresh = async (signal) => {
     const api = petRequest ?? await connectPetApi(webServer, connection, signal);
     await api('reload', { method: 'POST', signal });
@@ -279,7 +278,7 @@ export function apply(ctx) {
     void (petRequest ? Promise.resolve(petRequest) : refresh(AbortSignal.any([abort.signal, AbortSignal.timeout(3000)])))
       .then((api) => {
         startSchedule(schedule, api, pets, abort.signal, () => logger?.warn?.('小团团定时播放失败，请检查桌宠是否可用。'));
-        return runPickupMenu(api, () => pets().map((pet) => pet.id), abort.signal, warn, openScheduleSettings);
+        return runPickupMenu(api, () => pets().map((pet) => pet.id), abort.signal, warn);
       })
       .catch(() => { if (!abort.signal.aborted) warn(); });
     logger?.info?.('小团团已启用。');
