@@ -70,7 +70,7 @@ export function apply(ctx) {
 
     mkdirSync(animationDir, { recursive: true });
     if (!lstatSync(animationDir).isDirectory()) throw new Error('小团团素材目录不能是符号链接。');
-    for (const filename of ['待机呼吸.webm', '拖拽悬空.webm', '接你下班.webm']) {
+    for (const filename of ['待机呼吸.webm', '拖拽悬空.webm', '接你下班.webm', '超大伸懒腰.webm', '哈欠连天.webm', '悠闲哼歌.webm']) {
       const video = join(animationDir, filename);
       const bundled = join(source, `${prefix}-animation`, filename);
       if (!regularFile(video)) {
@@ -106,6 +106,61 @@ export function apply(ctx) {
         config._pluginVersion = '0.1.3';
         changed = true;
       }
+      if (['0.1.3', '0.1.4', '0.1.5', '0.1.6'].includes(config._pluginVersion)) {
+        config.animations ??= {};
+        config.animations.categories ??= [];
+        if (!config.animations.categories.some((category) => category.actions?.includes('超大伸懒腰'))) {
+          const daily = config.animations.categories.find((category) => category.id === '日常小动作');
+          if (daily) daily.actions.push('超大伸懒腰');
+          else config.animations.categories.push({ id: '日常小动作', weight: 10, actions: ['超大伸懒腰'] });
+        }
+        config._pluginVersion = '0.1.7';
+        changed = true;
+      }
+      if (config._pluginVersion === '0.1.7') {
+        const categories = config.animations?.categories ?? [];
+        const daily = categories.find((c) => c.id === '日常小动作' && c.weight === 10 && c.actions?.length === 1 && c.actions[0] === '超大伸懒腰');
+        const pickup = categories.find((c) => c.id === '小团团出行' && c.weight === 10 && c.noMirror === true && c.actions?.length === 1 && c.actions[0] === '接你下班');
+        const weights = config.animationWeights;
+        // 只升级原装动画池；已有自定义权重和分类保持不变。
+        if (categories.length === 2 && daily && pickup && weights?.idle === 100 && weights.turn === 0 && weights.move === 0) {
+          weights.idle = 80;
+          pickup.weight = 0;
+          // 正权重分类在前，避开宿主随机数为 0 时命中首个零权重分类的边界。
+          config.animations.categories = [daily, pickup];
+        }
+        config._pluginVersion = '0.1.8';
+        changed = true;
+      }
+      if (config._pluginVersion === '0.1.8') {
+        config.animations ??= {};
+        config.animations.categories ??= [];
+        if (!config.animations.categories.some((category) => category.actions?.includes('哈欠连天'))) {
+          const daily = config.animations.categories.find((category) => category.id === '日常小动作');
+          if (daily) daily.actions.push('哈欠连天');
+          else config.animations.categories.unshift({ id: '日常小动作', weight: 10, actions: ['哈欠连天'] });
+        }
+        config._pluginVersion = '0.1.9';
+        changed = true;
+      }
+      if (config._pluginVersion === '0.1.9') {
+        const weights = config.animationWeights;
+        // 只替换旧默认比例，保留用户另设的权重。
+        if (weights?.idle === 80 && weights.turn === 0 && weights.move === 0) weights.idle = 30;
+        config._pluginVersion = '0.1.10';
+        changed = true;
+      }
+      if (config._pluginVersion === '0.1.10') {
+        config.animations ??= {};
+        config.animations.categories ??= [];
+        if (!config.animations.categories.some((category) => category.actions?.includes('悠闲哼歌'))) {
+          const daily = config.animations.categories.find((category) => category.id === '日常小动作');
+          if (daily) daily.actions.push('悠闲哼歌');
+          else config.animations.categories.unshift({ id: '日常小动作', weight: 10, actions: ['悠闲哼歌'] });
+        }
+        config._pluginVersion = '0.1.11';
+        changed = true;
+      }
       if (changed) {
         const temporary = `${existing}.upgrade`;
         writeFileSync(temporary, JSON.stringify(config, null, 2) + '\n', { flag: 'wx' });
@@ -116,7 +171,7 @@ export function apply(ctx) {
     if (hasSaved) renameSync(saved, active);
     else if (!hasActive) {
       const config = JSON.parse(readFileSync(join(source, `${prefix}-config.json`), 'utf8'));
-      writeFileSync(active, JSON.stringify({ ...config, _plugin: name, _pluginVersion: '0.1.3' }, null, 2) + '\n', { flag: 'wx' });
+      writeFileSync(active, JSON.stringify({ ...config, _plugin: name, _pluginVersion: '0.1.11' }, null, 2) + '\n', { flag: 'wx' });
     }
     const schedule = createScheduleStore(join(petRoot, '../xiaotuantuan-schedule.json'));
     const unregisterSchedule = webServer.register({ kind: 'exact', path: schedulePath, handler: scheduleRoute(schedule, connection) });

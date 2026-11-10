@@ -42,7 +42,7 @@ test('激活独立宠物，不修改 main 或其他宠物；停用保留设置�
   const config = JSON.parse(readFileSync(f.config));
   assert.equal(config.pets[0].name, '小团团');
   assert.deepEqual(config.animations.drag, ['拖拽悬空']);
-  assert.deepEqual(config.animationWeights, { idle: 100, turn: 0, move: 0 });
+  assert.deepEqual(config.animationWeights, { idle: 30, turn: 0, move: 0 });
   assert.deepEqual(readFileSync(f.video).subarray(0, 4), Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
   config.pets[0].size = 512;
   writeFileSync(f.config, JSON.stringify(config));
@@ -260,6 +260,130 @@ test('升级补入接你下班菜单及素材，保留配置且重复启用不�
   assert.ok(existsSync(join(f.petRoot, 'blue-haired-girl-animation', '接你下班.webm')));
   dispose();
   const again = enable();
-  assert.equal(JSON.parse(readFileSync(f.config)).animations.categories.length, 2);
+  assert.equal(JSON.parse(readFileSync(f.config)).animations.categories.length, 3);
+  again();
+});
+
+test('伸懒腰升级复用日常分类，保留权重与自定义素材；删除后不强行补回', (t) => {
+  const f = fixture(t);
+  const old = {
+    _plugin: plugin.name, _pluginVersion: '0.1.3',
+    pets: [{ id: 'mine', name: '我的小团团', size: 350, display: 'desktop' }],
+    animations: { categories: [{ id: '日常小动作', weight: 27, actions: ['已有动作'] }] },
+    animationWeights: { idle: 90, turn: 0, move: 0 },
+  };
+  writeFileSync(f.config, JSON.stringify(old));
+  const dispose = enable();
+  const actual = JSON.parse(readFileSync(f.config));
+  assert.deepEqual(actual.pets, old.pets);
+  assert.deepEqual(actual.animationWeights, old.animationWeights);
+  assert.deepEqual(actual.animations.categories, [{ id: '日常小动作', weight: 27, actions: ['已有动作', '超大伸懒腰', '哈欠连天', '悠闲哼歌'] }]);
+  assert.equal(actual._pluginVersion, '0.1.11');
+  const video = join(f.petRoot, 'blue-haired-girl-animation', '超大伸懒腰.webm');
+  assert.deepEqual(readFileSync(video).subarray(0, 4), Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
+  actual.animations.categories[0].actions = ['已有动作'];
+  writeFileSync(f.config, JSON.stringify(actual));
+  writeFileSync(video, 'custom-stretch');
+  dispose();
+  const again = enable();
+  assert.deepEqual(JSON.parse(readFileSync(f.config)), actual);
+  assert.equal(readFileSync(video, 'utf8'), 'custom-stretch');
+  again();
+});
+
+
+test('原装 0.1.7 启用随机伸懒腰，保留角色设置；再次启用保留用户新权重', (t) => {
+  const f = fixture(t);
+  const old = JSON.parse(readFileSync(new URL('./pet/blue-haired-girl-config.json', import.meta.url)));
+  old._plugin = plugin.name;
+  old._pluginVersion = '0.1.7';
+  old.pets[0].size = 350;
+  old.animationWeights.idle = 100;
+  old.animations.categories.find((c) => c.id === '日常小动作').actions = ['超大伸懒腰'];
+  old.animations.categories.reverse();
+  old.animations.categories[0].weight = 10;
+  writeFileSync(f.saved, JSON.stringify(old));
+  const dispose = enable();
+  const actual = JSON.parse(readFileSync(f.config));
+  assert.deepEqual(actual.pets, old.pets);
+  assert.deepEqual(actual.animationWeights, { idle: 30, turn: 0, move: 0 });
+  assert.deepEqual(actual.animations.categories.map((c) => [c.id, c.weight]), [['日常小动作', 10], ['小团团出行', 0]]);
+  actual.animationWeights.idle = 100;
+  writeFileSync(f.config, JSON.stringify(actual));
+  dispose();
+  const again = enable();
+  assert.deepEqual(JSON.parse(readFileSync(f.config)), actual);
+  again();
+});
+
+
+test('哈欠升级保留权重与角色，自定义素材不覆盖；再次启用不重复添加', (t) => {
+  const f = fixture(t);
+  const old = {
+    _plugin: plugin.name, _pluginVersion: '0.1.8',
+    pets: [{ id: 'mine', size: 350 }],
+    animations: { categories: [{ id: '日常小动作', weight: 27, actions: ['超大伸懒腰', '自定义动作'] }] },
+    animationWeights: { idle: 85, turn: 0, move: 0 },
+  };
+  writeFileSync(f.saved, JSON.stringify(old));
+  const dispose = enable();
+  const actual = JSON.parse(readFileSync(f.config));
+  assert.deepEqual(actual.pets, old.pets);
+  assert.deepEqual(actual.animationWeights, old.animationWeights);
+  assert.deepEqual(actual.animations.categories, [{ id: '日常小动作', weight: 27, actions: ['超大伸懒腰', '自定义动作', '哈欠连天', '悠闲哼歌'] }]);
+  const video = join(f.petRoot, 'blue-haired-girl-animation', '哈欠连天.webm');
+  assert.deepEqual(readFileSync(video), readFileSync(new URL('./pet/blue-haired-girl-animation/哈欠连天.webm', import.meta.url)));
+  writeFileSync(video, 'custom-yawn');
+  dispose();
+  const again = enable();
+  assert.deepEqual(JSON.parse(readFileSync(f.config)), actual);
+  assert.equal(readFileSync(video, 'utf8'), 'custom-yawn');
+  again();
+});
+
+
+test('0.1.9 旧默认比例升级为 30/70，仅升级一次并保留动作池', (t) => {
+  const f = fixture(t);
+  const old = JSON.parse(readFileSync(new URL('./pet/blue-haired-girl-config.json', import.meta.url)));
+  old._plugin = plugin.name;
+  old._pluginVersion = '0.1.9';
+  old.animationWeights.idle = 80;
+  writeFileSync(f.config, JSON.stringify(old));
+  const dispose = enable();
+  const actual = JSON.parse(readFileSync(f.config));
+  assert.deepEqual(actual.animationWeights, { idle: 30, turn: 0, move: 0 });
+  assert.deepEqual(actual.animations, old.animations);
+  actual.animationWeights.idle = 80;
+  writeFileSync(f.config, JSON.stringify(actual));
+  dispose();
+  const again = enable();
+  assert.deepEqual(JSON.parse(readFileSync(f.config)), actual);
+  again();
+});
+
+
+test('哼歌升级加入一次，保留权重和自定义素材，后续删除动作不补回', (t) => {
+  const f = fixture(t);
+  const old = {
+    _plugin: plugin.name, _pluginVersion: '0.1.10',
+    pets: [{ id: 'mine', size: 350 }],
+    animations: { categories: [{ id: '日常小动作', weight: 10, actions: ['超大伸懒腰', '哈欠连天'] }] },
+    animationWeights: { idle: 30, turn: 0, move: 0 },
+  };
+  writeFileSync(f.saved, JSON.stringify(old));
+  const dispose = enable();
+  const actual = JSON.parse(readFileSync(f.config));
+  assert.deepEqual(actual.pets, old.pets);
+  assert.deepEqual(actual.animationWeights, old.animationWeights);
+  assert.deepEqual(actual.animations.categories[0].actions, ['超大伸懒腰', '哈欠连天', '悠闲哼歌']);
+  const video = join(f.petRoot, 'blue-haired-girl-animation', '悠闲哼歌.webm');
+  assert.deepEqual(readFileSync(video), readFileSync(new URL('./pet/blue-haired-girl-animation/悠闲哼歌.webm', import.meta.url)));
+  writeFileSync(video, 'custom-humming');
+  actual.animations.categories[0].actions.pop();
+  writeFileSync(f.config, JSON.stringify(actual));
+  dispose();
+  const again = enable();
+  assert.deepEqual(JSON.parse(readFileSync(f.config)), actual);
+  assert.equal(readFileSync(video, 'utf8'), 'custom-humming');
   again();
 });
