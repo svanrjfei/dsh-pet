@@ -70,7 +70,7 @@ export function apply(ctx) {
 
     mkdirSync(animationDir, { recursive: true });
     if (!lstatSync(animationDir).isDirectory()) throw new Error('小团团素材目录不能是符号链接。');
-    for (const filename of ['待机呼吸.webm', '拖拽悬空.webm', '接你下班.webm', '超大伸懒腰.webm', '哈欠连天.webm', '悠闲哼歌.webm']) {
+    for (const filename of ['待机呼吸.webm', '余额展示.webm', '拖拽悬空.webm', '接你下班.webm', '超大伸懒腰.webm', '哈欠连天.webm', '悠闲哼歌.webm']) {
       const video = join(animationDir, filename);
       const bundled = join(source, `${prefix}-animation`, filename);
       if (!regularFile(video)) {
@@ -161,6 +161,15 @@ export function apply(ctx) {
         config._pluginVersion = '0.1.11';
         changed = true;
       }
+      if (config._pluginVersion === '0.1.11') {
+        const balance = config.animations?.events?.balance;
+        // 事件动画按名字识别；与待机重名会永远走“事件播完回待机”，无法恢复随机链。
+        if (Array.isArray(balance) && balance.length === 1 && balance[0] === '待机呼吸') {
+          config.animations.events.balance = ['余额展示'];
+        }
+        config._pluginVersion = '0.1.12';
+        changed = true;
+      }
       if (changed) {
         const temporary = `${existing}.upgrade`;
         writeFileSync(temporary, JSON.stringify(config, null, 2) + '\n', { flag: 'wx' });
@@ -171,7 +180,7 @@ export function apply(ctx) {
     if (hasSaved) renameSync(saved, active);
     else if (!hasActive) {
       const config = JSON.parse(readFileSync(join(source, `${prefix}-config.json`), 'utf8'));
-      writeFileSync(active, JSON.stringify({ ...config, _plugin: name, _pluginVersion: '0.1.11' }, null, 2) + '\n', { flag: 'wx' });
+      writeFileSync(active, JSON.stringify({ ...config, _plugin: name, _pluginVersion: '0.1.12' }, null, 2) + '\n', { flag: 'wx' });
     }
     const schedule = createScheduleStore(join(petRoot, '../xiaotuantuan-schedule.json'));
     const unregisterSchedule = webServer.register({ kind: 'exact', path: schedulePath, handler: scheduleRoute(schedule, connection) });

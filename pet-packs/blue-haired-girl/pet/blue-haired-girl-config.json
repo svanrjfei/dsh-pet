@@ -25,7 +25,7 @@
       { "id": "日常小动作", "weight": 10, "actions": ["超大伸懒腰", "哈欠连天", "悠闲哼歌"] },
       { "id": "小团团出行", "weight": 0, "noMirror": true, "actions": ["接你下班"] }
     ],
-    "events": { "balance": ["待机呼吸"] }
+    "events": { "balance": ["余额展示"] }
   },
   "animationWeights": { "idle": 30, "turn": 0, "move": 0 }
 }
