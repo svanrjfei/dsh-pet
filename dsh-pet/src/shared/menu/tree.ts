@@ -139,6 +139,39 @@ export function buildMenuTree(animations: Animations): MenuNode[] {
   return [{ label: '动作', children: groups }];
 }
 
+/** 小团团的接送入口归入动作，保留插件回调，以便同步播放招呼气泡。 */
+export function buildPetMenus(
+  animations: Animations,
+  items: readonly MenuMoreItem[],
+  assetRoot?: string,
+): {
+  actions: MenuNode[];
+  more: MenuBranch | null;
+} {
+  const actions = buildMenuTree(animations);
+  const pickup =
+    assetRoot === 'blue-haired-girl'
+      ? items.find((item) => item.owner.startsWith('xiaotuantuan-') && item.label === '接你下班')
+      : undefined;
+  const root = actions[0];
+  if (
+    !pickup ||
+    !root ||
+    !('children' in root) ||
+    !animations.categories.some((category) => category.actions.includes('接你下班'))
+  ) {
+    return { actions, more: buildMoreBranch(items) };
+  }
+  // 去掉原来的纯视频入口及空分类，防止同一动作在菜单中出现两次。
+  root.children = root.children.flatMap((group) => {
+    if (!('children' in group)) return [group];
+    const children = group.children.filter((node) => 'children' in node || node.anim !== '接你下班');
+    return children.length ? [{ ...group, children }] : [];
+  });
+  root.children.push({ label: pickup.label, action: 'third-party', owner: pickup.owner });
+  return { actions, more: buildMoreBranch(items.filter((item) => item !== pickup)) };
+}
+
 /** 该动画是否属于 noMirror 分类（文字类）：朝右镜像时点播前强制朝左，避免文字镜像。 */
 export function isNoMirrorAnimation(categories: Category[], anim: string): boolean {
   return (categories ?? []).some((c) => c.noMirror === true && c.actions.includes(anim));

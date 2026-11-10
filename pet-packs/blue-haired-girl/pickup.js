@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-const label = '小团团·接你下班';
+const label = '接你下班';
 
 export async function playPickup(api, pet, signal) {
   const target = `pet=${encodeURIComponent(pet)}&surface=desktop`;

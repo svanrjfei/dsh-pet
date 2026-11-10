@@ -11,6 +11,7 @@ export {
   MORE_MENU_LABEL,
   buildMenuTree,
   buildMoreBranch,
+  buildPetMenus,
   displayMenuBranch,
   isNoMirrorAnimation,
   isSleepAllowedAction,

@@ -21,8 +21,7 @@ import { bindOpenChat } from './open-chat.ts';
 import { registerPetChatHandle } from './registry.ts';
 import {
   buildMemeBranch,
-  buildMenuTree,
-  buildMoreBranch,
+  buildPetMenus,
   displayMenuBranch,
   memeThumbUrl,
   mountContextMenu,
@@ -337,8 +336,11 @@ export function createCardEntry(rt: CardEntryRuntime) {
     /** 打开右键菜单。 */
     const handleContextMenu = (e: ReactNS.MouseEvent<HTMLDivElement>): void => {
       // 工具项与动作树；「查看余额」无条件显示，手动请求不受开关限制。
-      // 第三方菜单项统一收在「更多」下：label 唯一的平铺，重名的按 owner 分子菜单（见 buildMoreBranch）。
-      const more = buildMoreBranch(menuItemsRef.current);
+      const { actions: actionTree, more } = buildPetMenus(
+        cfgRef.current.animations,
+        menuItemsRef.current,
+        cfgRef.current.assetRoot,
+      );
       // 「配图」：按配置里的清单分成「纳入对话的配图 / 其他」，点一张就用它说一句。
       // 没有可用图时返回 null，整项不出现（不占一个点开是空的菜单）。
       // 缩略图靠 /pic/memes/<素材根>/<名称>.png：素材根就是拍平时写入的条目 key。
@@ -366,12 +368,7 @@ export function createCardEntry(rt: CardEntryRuntime) {
         displayMenuBranch(),
         { label: '回到初始位置', action: 'home' },
       ];
-      const tree: MenuNode[] = [
-        ...tools,
-        ...buildMenuTree(cfgRef.current.animations),
-        ...tail,
-        ...(more ? [more] : []),
-      ];
+      const tree: MenuNode[] = [...tools, ...actionTree, ...tail, ...(more ? [more] : [])];
       if (!tree.length) return;
       e.preventDefault();
       e.stopPropagation(); // 不触碰 DSH 页面的菜单与右键处理。

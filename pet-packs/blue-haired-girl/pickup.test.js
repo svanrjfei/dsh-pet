@@ -53,7 +53,7 @@ test('菜单只响应自有宠物，重复点播取消旧等待，停用注销�
     if (route.startsWith('menu/events')) {
       await setImmediate();
       const pets = ['other-pet', 'own-pet', 'own-pet'];
-      if (polls < pets.length) return { events: { '小团团·接你下班': pets[polls++] } };
+      if (polls < pets.length) return { events: { '接你下班': pets[polls++] } };
       abort.abort();
       throw abort.signal.reason;
     }
@@ -72,7 +72,7 @@ test('菜单只响应自有宠物，重复点播取消旧等待，停用注销�
   assert.equal(pending.length, 2);
   assert.ok(pending.every((signal) => signal.aborted));
   assert.equal(calls[0].body.target, 'desktop');
-  assert.deepEqual(calls[0].body.labels, ['小团团·接你下班']);
+  assert.deepEqual(calls[0].body.labels, ['接你下班']);
   assert.equal(calls.at(-1).route, `menu/item?owner=${calls[0].body.owner}`);
   assert.equal(calls.at(-1).method, 'DELETE');
   assert.equal(calls.at(-1).signal.aborted, false);

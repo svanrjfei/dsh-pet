@@ -8,7 +8,8 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildMoreBranch, isSleepAllowedAction, readMenuItems } from './tree.ts';
+import { buildMenuTree, buildMoreBranch, buildPetMenus, isSleepAllowedAction, readMenuItems } from './tree.ts';
+import type { Animations } from '../types.ts';
 
 describe('isSleepAllowedAction —— 睡着时仍然放行的动作', () => {
   test('睡觉 / 起来 / 维护类 / 第三方菜单项放行', () => {
@@ -118,5 +119,64 @@ describe('buildMoreBranch —— 「更多」：label 唯一平铺，重名收�
       label: '更多',
       children: [{ label: '签到', action: 'third-party', owner: '插件A' }],
     });
+  });
+});
+
+describe('小团团接送入口归入动作', () => {
+  const animations: Animations = {
+    idle: ['待机呼吸'],
+    turn: [],
+    drag: [],
+    clicks: [],
+    moves: { default: {}, actions: [] },
+    events: {},
+    categories: [
+      { id: '日常小动作', weight: 10, actions: ['哈欠连天'] },
+      { id: '小团团出行', weight: 0, noMirror: true, actions: ['接你下班'] },
+    ],
+  };
+  const pickup = { owner: 'xiaotuantuan-test', label: '接你下班' };
+
+  test('动作下直接触发插件回调，没有重复分类或更多入口', () => {
+    const before = structuredClone(animations);
+    const result = buildPetMenus(animations, [pickup], 'blue-haired-girl');
+    assert.deepEqual(result, {
+      actions: [
+        {
+          label: '动作',
+          children: [
+            { label: '待机', children: [{ label: '待机呼吸', anim: '待机呼吸' }] },
+            { label: '日常小动作', children: [{ label: '哈欠连天', anim: '哈欠连天' }] },
+            { label: '接你下班', action: 'third-party', owner: pickup.owner },
+          ],
+        },
+      ],
+      more: null,
+    });
+    assert.deepEqual(animations, before);
+  });
+
+  test('其他更多菜单、同分类中的其他动作保持不变', () => {
+    const extra = { owner: 'another', label: '其他工具' };
+    const config = structuredClone(animations);
+    config.categories[1]!.actions.push('兜风');
+    const result = buildPetMenus(config, [pickup, extra], 'blue-haired-girl');
+    assert.deepEqual(result.more, buildMoreBranch([extra]));
+    const root = result.actions[0]!;
+    assert.ok('children' in root);
+    assert.deepEqual(root.children[2], { label: '小团团出行', children: [{ label: '兜风', anim: '兜风' }] });
+  });
+
+  test('其他宠物、未注册或其他插件同名菜单不被接管', () => {
+    for (const [root, items] of [
+      ['main', [pickup]],
+      ['blue-haired-girl', []],
+      ['blue-haired-girl', [{ owner: 'other-plugin', label: '接你下班' }]],
+    ] as const) {
+      assert.deepEqual(buildPetMenus(animations, items, root), {
+        actions: buildMenuTree(animations),
+        more: buildMoreBranch(items),
+      });
+    }
   });
 });
