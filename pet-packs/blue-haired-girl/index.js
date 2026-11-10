@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { constants, copyFileSync, lstatSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createScheduleStore, schedulePath, scheduleRoute, startSchedule } from './schedule.js';
 import { runPickupMenu } from './pickup.js';
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths';
 
@@ -117,14 +118,21 @@ export function apply(ctx) {
       const config = JSON.parse(readFileSync(join(source, `${prefix}-config.json`), 'utf8'));
       writeFileSync(active, JSON.stringify({ ...config, _plugin: name, _pluginVersion: '0.1.3' }, null, 2) + '\n', { flag: 'wx' });
     }
+    const schedule = createScheduleStore(join(petRoot, '../xiaotuantuan-schedule.json'));
+    const unregisterSchedule = webServer.register({ kind: 'exact', path: schedulePath, handler: scheduleRoute(schedule, connection) });
+    const pets = () => JSON.parse(readFileSync(active, 'utf8')).pets;
     const abort = new AbortController();
     void refresh(AbortSignal.any([abort.signal, AbortSignal.timeout(3000)]))
-      .then((api) => runPickupMenu(api, () => JSON.parse(readFileSync(active, 'utf8')).pets.map((pet) => pet.id), abort.signal, warn))
+      .then((api) => {
+        startSchedule(schedule, api, pets, abort.signal, () => logger?.warn?.('小团团定时播放失败，请检查桌宠是否可用。'));
+        return runPickupMenu(api, () => pets().map((pet) => pet.id), abort.signal, warn);
+      })
       .catch(() => { if (!abort.signal.aborted) warn(); });
     logger?.info?.('小团团已启用。');
 
     return () => {
       abort.abort();
+      unregisterSchedule();
       // shortcut: pet pack 是 DSH_HOME 级共享配置，同一数据目录仅启用一份本插件。
       if (ownedConfig(active)) {
         if (regularFile(saved)) throw new Error('小团团停用备份已存在，保留当前配置以避免覆盖。');

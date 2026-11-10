@@ -28,7 +28,7 @@ function fixture(t) {
 
 function enable(services = {}) {
   let dispose;
-  plugin.apply({ ...services, effect(fn) { dispose = fn(); } });
+  plugin.apply({ ...services, webServer: { register: () => () => {}, ...services.webServer }, effect(fn) { dispose = fn(); } });
   return dispose;
 }
 
@@ -117,7 +117,7 @@ test('真实 Cordis 等待 dsh-pet 服务，启用及释放遵循插件生命周
   const ctx = new Context();
   t.after(() => ctx.fiber.dispose());
   const fork = ctx.plugin(plugin);
-  ctx.provide('webServer', { getOrigin() { throw new Error('No HTTP in this test'); } });
+  ctx.provide('webServer', { register: () => () => {}, getOrigin() { throw new Error('No HTTP in this test'); } });
   ctx.provide('connection', {});
   await setImmediate();
   assert.equal(existsSync(f.config), false);
