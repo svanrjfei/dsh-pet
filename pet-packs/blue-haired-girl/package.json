@@ -1,6 +1,6 @@
 {
   "name": "dsh-pet-xiaotuantuan",
-  "version": "0.1.12",
+  "version": "0.1.14",
   "description": "小团团独立桌宠：透明待机动画，需先安装并启用 dsh-pet。",
   "type": "module",
   "main": "index.js",

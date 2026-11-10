@@ -277,8 +277,8 @@ test('伸懒腰升级复用日常分类，保留权重与自定义素材；删�
   const actual = JSON.parse(readFileSync(f.config));
   assert.deepEqual(actual.pets, old.pets);
   assert.deepEqual(actual.animationWeights, old.animationWeights);
-  assert.deepEqual(actual.animations.categories, [{ id: '日常小动作', weight: 27, actions: ['已有动作', '超大伸懒腰', '哈欠连天', '悠闲哼歌'] }]);
-  assert.equal(actual._pluginVersion, '0.1.12');
+  assert.deepEqual(actual.animations.categories, [{ id: '日常小动作', weight: 27, actions: ['已有动作', '超大伸懒腰', '哈欠连天', '悠闲哼歌', '东张西望', '玩游戏气急败坏'] }]);
+  assert.equal(actual._pluginVersion, '0.1.14');
   const video = join(f.petRoot, 'blue-haired-girl-animation', '超大伸懒腰.webm');
   assert.deepEqual(readFileSync(video).subarray(0, 4), Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
   actual.animations.categories[0].actions = ['已有动作'];
@@ -330,7 +330,7 @@ test('哈欠升级保留权重与角色，自定义素材不覆盖；再次启�
   const actual = JSON.parse(readFileSync(f.config));
   assert.deepEqual(actual.pets, old.pets);
   assert.deepEqual(actual.animationWeights, old.animationWeights);
-  assert.deepEqual(actual.animations.categories, [{ id: '日常小动作', weight: 27, actions: ['超大伸懒腰', '自定义动作', '哈欠连天', '悠闲哼歌'] }]);
+  assert.deepEqual(actual.animations.categories, [{ id: '日常小动作', weight: 27, actions: ['超大伸懒腰', '自定义动作', '哈欠连天', '悠闲哼歌', '东张西望', '玩游戏气急败坏'] }]);
   const video = join(f.petRoot, 'blue-haired-girl-animation', '哈欠连天.webm');
   assert.deepEqual(readFileSync(video), readFileSync(new URL('./pet/blue-haired-girl-animation/哈欠连天.webm', import.meta.url)));
   writeFileSync(video, 'custom-yawn');
@@ -375,11 +375,11 @@ test('哼歌升级加入一次，保留权重和自定义素材，后续删除�
   const actual = JSON.parse(readFileSync(f.config));
   assert.deepEqual(actual.pets, old.pets);
   assert.deepEqual(actual.animationWeights, old.animationWeights);
-  assert.deepEqual(actual.animations.categories[0].actions, ['超大伸懒腰', '哈欠连天', '悠闲哼歌']);
+  assert.deepEqual(actual.animations.categories[0].actions, ['超大伸懒腰', '哈欠连天', '悠闲哼歌', '东张西望', '玩游戏气急败坏']);
   const video = join(f.petRoot, 'blue-haired-girl-animation', '悠闲哼歌.webm');
   assert.deepEqual(readFileSync(video), readFileSync(new URL('./pet/blue-haired-girl-animation/悠闲哼歌.webm', import.meta.url)));
   writeFileSync(video, 'custom-humming');
-  actual.animations.categories[0].actions.pop();
+  actual.animations.categories[0].actions = actual.animations.categories[0].actions.filter((name) => name !== '悠闲哼歌');
   writeFileSync(f.config, JSON.stringify(actual));
   dispose();
   const again = enable();
@@ -411,4 +411,51 @@ test('修复待机与余额事件重名，保留权重及用户自定义余额�
     again();
     rmSync(f.saved);
   }
+});
+
+
+test('东张西望只加入日常随机池，升级保留转向配置及自定义素材', (t) => {
+  const f = fixture(t);
+  const old = JSON.parse(readFileSync(new URL('./pet/blue-haired-girl-config.json', import.meta.url)));
+  old._plugin = plugin.name;
+  old._pluginVersion = '0.1.12';
+  old.animations.categories[0].actions = ['超大伸懒腰', '哈欠连天', '悠闲哼歌'];
+  old.animations.turn = ['自定义转向'];
+  writeFileSync(f.saved, JSON.stringify(old));
+  const dispose = enable();
+  const actual = JSON.parse(readFileSync(f.config));
+  assert.deepEqual(actual.animationWeights, old.animationWeights);
+  assert.deepEqual(actual.animations.turn, old.animations.turn);
+  assert.deepEqual(actual.animations.categories[0].actions, ['超大伸懒腰', '哈欠连天', '悠闲哼歌', '东张西望', '玩游戏气急败坏']);
+  const video = join(f.petRoot, 'blue-haired-girl-animation', '东张西望.webm');
+  assert.deepEqual(readFileSync(video), readFileSync(new URL('./pet/blue-haired-girl-animation/东张西望.webm', import.meta.url)));
+  writeFileSync(video, 'custom-look');
+  dispose();
+  const again = enable();
+  assert.deepEqual(JSON.parse(readFileSync(f.config)), actual);
+  assert.equal(readFileSync(video, 'utf8'), 'custom-look');
+  again();
+});
+
+
+test('游戏动画升级保留原动作与权重，不覆盖自定义素材或重复添加', (t) => {
+  const f = fixture(t);
+  const old = JSON.parse(readFileSync(new URL('./pet/blue-haired-girl-config.json', import.meta.url)));
+  old._plugin = plugin.name;
+  old._pluginVersion = '0.1.13';
+  old.animations.categories[0].actions = ['超大伸懒腰', '哈欠连天', '悠闲哼歌', '东张西望'];
+  writeFileSync(f.saved, JSON.stringify(old));
+  const dispose = enable();
+  const actual = JSON.parse(readFileSync(f.config));
+  assert.deepEqual(actual.animationWeights, old.animationWeights);
+  assert.deepEqual(actual.animations.categories[0].actions, [...old.animations.categories[0].actions, '玩游戏气急败坏']);
+  assert.deepEqual(actual.pets, old.pets);
+  const video = join(f.petRoot, 'blue-haired-girl-animation', '玩游戏气急败坏.webm');
+  assert.deepEqual(readFileSync(video), readFileSync(new URL('./pet/blue-haired-girl-animation/玩游戏气急败坏.webm', import.meta.url)));
+  writeFileSync(video, 'custom-game');
+  dispose();
+  const again = enable();
+  assert.deepEqual(JSON.parse(readFileSync(f.config)), actual);
+  assert.equal(readFileSync(video, 'utf8'), 'custom-game');
+  again();
 });
