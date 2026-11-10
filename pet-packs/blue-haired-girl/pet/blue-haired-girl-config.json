@@ -1,0 +1,28 @@
+{
+  "pets": [
+    {
+      "id": "blue-haired-girl-1",
+      "name": "小团团",
+      "size": 400,
+      "balanceEnabled": false,
+      "whisperEnabled": false,
+      "workStatusEnabled": false,
+      "fixedEnabled": true,
+      "display": "desktop",
+      "position": { "corner": "bottom-left", "marginX": 40, "marginY": 40 }
+    }
+  ],
+  "animations": {
+    "idle": ["待机呼吸"],
+    "turn": [],
+    "drag": [],
+    "clicks": [],
+    "moves": {
+      "default": { "minDist": 80, "maxDist": 360, "margin": 20, "leadSec": 2, "tailSec": 2 },
+      "actions": []
+    },
+    "categories": [],
+    "events": { "balance": ["待机呼吸"] }
+  },
+  "animationWeights": { "idle": 100, "turn": 0, "move": 0 }
+}
