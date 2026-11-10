@@ -216,3 +216,22 @@ test('旧配置升级遇到已有临时文件时保留两份文件，不覆盖�
   assert.equal(readFileSync(f.config, 'utf8'), original);
   assert.equal(readFileSync(`${f.config}.upgrade`, 'utf8'), 'previous-upgrade');
 });
+
+test('新版素材安装不覆盖用户自定义拖拽文件，也不跟随同名符号链接', (t) => {
+  const f = fixture(t);
+  const dispose = enable();
+  const dragVideo = join(f.petRoot, 'blue-haired-girl-animation', '拖拽悬空.webm');
+  const bundled = readFileSync(new URL('./pet/blue-haired-girl-animation/拖拽悬空.webm', import.meta.url));
+  assert.deepEqual(readFileSync(dragVideo), bundled);
+  dispose();
+  writeFileSync(dragVideo, 'user-custom-drag');
+  const again = enable();
+  assert.equal(readFileSync(dragVideo, 'utf8'), 'user-custom-drag');
+  again();
+  rmSync(dragVideo);
+  const outside = join(f.home, 'outside-drag.webm');
+  writeFileSync(outside, 'keep-outside');
+  symlinkSync(outside, dragVideo);
+  assert.throws(enable, /非普通文件/);
+  assert.equal(readFileSync(outside, 'utf8'), 'keep-outside');
+});

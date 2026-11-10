@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { constants, copyFileSync, lstatSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -60,8 +61,16 @@ export function apply(ctx) {
     if (!lstatSync(animationDir).isDirectory()) throw new Error('小团团素材目录不能是符号链接。');
     for (const filename of ['待机呼吸.webm', '拖拽悬空.webm']) {
       const video = join(animationDir, filename);
+      const bundled = join(source, `${prefix}-animation`, filename);
       if (!regularFile(video)) {
-        copyFileSync(join(source, `${prefix}-animation`, filename), video, constants.COPYFILE_EXCL);
+        copyFileSync(bundled, video, constants.COPYFILE_EXCL);
+      } else if (filename === '拖拽悬空.webm' &&
+        createHash('sha256').update(readFileSync(video)).digest('hex') ===
+          '7041f30333a828ff865c3d68ebe6a03b7f3a260397bea96ae75c1158ac351a33') {
+        // 只更新 0.1.1 原装素材，用户替换过的同名动画保持不变。
+        const temporary = `${video}.upgrade`;
+        copyFileSync(bundled, temporary, constants.COPYFILE_EXCL);
+        renameSync(temporary, video);
       }
     }
     // 仅为旧版补一次拖拽动作，之后保留用户自己清空或替换的动画池。
