@@ -139,6 +139,8 @@ test('启停通过宿主 cookie 鉴权刷新桌宠，不透传启动令牌到业
       res.end();
     } else if (req.method === 'POST' && req.url === '/dsh-pet-7340/reload' && req.headers.cookie === 'session=test-session') {
       res.writeHead(200); res.end('{}');
+    } else if (req.url.startsWith('/dsh-pet-7340/menu/') && req.headers.cookie === 'session=test-session') {
+      if (!req.url.includes('/events')) { res.writeHead(200); res.end('{"ok":true}'); }
     } else { res.writeHead(401); res.end(); }
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -149,16 +151,20 @@ test('启停通过宿主 cookie 鉴权刷新桌宠，不透传启动令牌到业
     connection: { authenticatedUrl: (base) => `${base}/?token=test-only` },
   };
   const waitForReloads = async (count) => {
-    for (let i = 0; i < 100 && calls.filter((c) => c.method === 'POST').length < count; i++) {
+    for (let i = 0; i < 100 && calls.filter((c) => c.url === '/dsh-pet-7340/reload').length < count; i++) {
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
-    assert.equal(calls.filter((c) => c.method === 'POST').length, count);
+    assert.equal(calls.filter((c) => c.url === '/dsh-pet-7340/reload').length, count);
   };
   const dispose = enable(services);
   await waitForReloads(1);
+  for (let i = 0; i < 100 && !calls.some((c) => c.url.includes('/menu/events')); i++) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  assert.ok(calls.some((c) => c.url.includes('/menu/events')));
   dispose();
   await waitForReloads(2);
-  assert.equal(calls.length, 4);
+  assert.ok(calls.some((c) => c.method === 'DELETE' && c.url.includes('/menu/item')));
   for (const call of calls.filter((c) => c.method === 'POST')) {
     assert.equal(call.origin, origin);
     assert.equal(call.url.includes('token'), false);
@@ -234,4 +240,26 @@ test('新版素材安装不覆盖用户自定义拖拽文件，也不跟随同�
   symlinkSync(outside, dragVideo);
   assert.throws(enable, /非普通文件/);
   assert.equal(readFileSync(outside, 'utf8'), 'keep-outside');
+});
+
+test('升级补入接你下班菜单及素材，保留配置且重复启用不重复添加', (t) => {
+  const f = fixture(t);
+  const old = {
+    _plugin: plugin.name, _pluginVersion: '0.1.1',
+    pets: [{ name: '我的小团团', size: 350, display: 'desktop' }],
+    animations: { idle: ['待机呼吸'], categories: [{ id: '自定义', weight: 10, actions: ['原动作'] }] },
+    animationWeights: { idle: 100, turn: 0, move: 0 },
+  };
+  writeFileSync(f.saved, JSON.stringify(old));
+  const dispose = enable();
+  const actual = JSON.parse(readFileSync(f.config));
+  assert.deepEqual(actual.pets, old.pets);
+  assert.deepEqual(actual.animationWeights, old.animationWeights);
+  assert.deepEqual(actual.animations.categories[0], old.animations.categories[0]);
+  assert.deepEqual(actual.animations.categories[1], { id: '小团团出行', weight: 10, noMirror: true, actions: ['接你下班'] });
+  assert.ok(existsSync(join(f.petRoot, 'blue-haired-girl-animation', '接你下班.webm')));
+  dispose();
+  const again = enable();
+  assert.equal(JSON.parse(readFileSync(f.config)).animations.categories.length, 2);
+  again();
 });

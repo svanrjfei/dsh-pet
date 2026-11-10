@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { constants, copyFileSync, lstatSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { runPickupMenu } from './pickup.js';
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths';
 
 export const name = 'dsh-pet-xiaotuantuan';
@@ -27,7 +28,7 @@ function ownedConfig(path) {
   return true;
 }
 
-async function reloadDesktop(webServer, connection, signal) {
+async function connectPetApi(webServer, connection, signal) {
   const origin = webServer.getOrigin();
   const login = new URL(connection.authenticatedUrl(origin));
   if (login.origin !== new URL(origin).origin) throw new Error('Unexpected authentication origin');
@@ -36,18 +37,27 @@ async function reloadDesktop(webServer, connection, signal) {
   const cookie = auth.headers.getSetCookie().map((value) => value.split(';', 1)[0]).join('; ');
   await auth.body?.cancel();
   if (auth.status >= 400 || !cookie) throw new Error('Desktop authentication failed');
-  const response = await fetch(new URL('/dsh-pet-7340/reload', origin), {
-    method: 'POST', headers: { cookie, origin }, redirect: 'error', signal,
-  });
-  await response.body?.cancel();
-  if (!response.ok) throw new Error('Desktop reload failed');
+  return async (route, { method = 'GET', body, signal } = {}) => {
+    const response = await fetch(new URL(`/dsh-pet-7340/${route}`, origin), {
+      method, headers: { cookie, origin, 'content-type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body), redirect: 'error',
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(12000)]) : AbortSignal.timeout(12000),
+    });
+    if (!response.ok) { await response.body?.cancel(); throw new Error('Pet request failed'); }
+    const result = await response.json();
+    if (result.ok === false) throw new Error('Pet request rejected');
+    return result;
+  };
 }
 
 export function apply(ctx) {
   const { webServer, connection, logger } = ctx;
-  const refresh = (signal) => reloadDesktop(webServer, connection, signal).catch(() => {
-    if (signal.reason?.name !== 'AbortError') logger?.warn?.('小团团配置已更新，自动刷新失败，请右键桌宠选择“重载配置”。');
-  });
+  const refresh = async (signal) => {
+    const api = await connectPetApi(webServer, connection, signal);
+    await api('reload', { method: 'POST', signal });
+    return api;
+  };
+  const warn = () => logger?.warn?.('小团团刷新或招呼菜单连接失败，请重新启用插件。');
   ctx.effect(() => {
     const petRoot = join(resolveDshHome(), 'dsh-pet', 'pet');
     const active = join(petRoot, `${prefix}-config.json`);
@@ -59,7 +69,7 @@ export function apply(ctx) {
 
     mkdirSync(animationDir, { recursive: true });
     if (!lstatSync(animationDir).isDirectory()) throw new Error('小团团素材目录不能是符号链接。');
-    for (const filename of ['待机呼吸.webm', '拖拽悬空.webm']) {
+    for (const filename of ['待机呼吸.webm', '拖拽悬空.webm', '接你下班.webm']) {
       const video = join(animationDir, filename);
       const bundled = join(source, `${prefix}-animation`, filename);
       if (!regularFile(video)) {
@@ -77,12 +87,25 @@ export function apply(ctx) {
     const existing = hasSaved ? saved : hasActive ? active : null;
     if (existing) {
       const config = JSON.parse(readFileSync(existing, 'utf8'));
+      let changed = false;
       if (config._pluginVersion === undefined) {
         config.animations ??= {};
         if (config.animations.drag === undefined || (Array.isArray(config.animations.drag) && !config.animations.drag.length)) {
           config.animations.drag = ['拖拽悬空'];
         }
         config._pluginVersion = '0.1.1';
+        changed = true;
+      }
+      if (['0.1.1', '0.1.2'].includes(config._pluginVersion)) {
+        config.animations ??= {};
+        config.animations.categories ??= [];
+        if (!config.animations.categories.some((category) => category.actions?.includes('接你下班'))) {
+          config.animations.categories.push({ id: '小团团出行', weight: 10, noMirror: true, actions: ['接你下班'] });
+        }
+        config._pluginVersion = '0.1.3';
+        changed = true;
+      }
+      if (changed) {
         const temporary = `${existing}.upgrade`;
         writeFileSync(temporary, JSON.stringify(config, null, 2) + '\n', { flag: 'wx' });
         renameSync(temporary, existing);
@@ -92,10 +115,12 @@ export function apply(ctx) {
     if (hasSaved) renameSync(saved, active);
     else if (!hasActive) {
       const config = JSON.parse(readFileSync(join(source, `${prefix}-config.json`), 'utf8'));
-      writeFileSync(active, JSON.stringify({ ...config, _plugin: name, _pluginVersion: '0.1.1' }, null, 2) + '\n', { flag: 'wx' });
+      writeFileSync(active, JSON.stringify({ ...config, _plugin: name, _pluginVersion: '0.1.3' }, null, 2) + '\n', { flag: 'wx' });
     }
     const abort = new AbortController();
-    void refresh(AbortSignal.any([abort.signal, AbortSignal.timeout(3000)]));
+    void refresh(AbortSignal.any([abort.signal, AbortSignal.timeout(3000)]))
+      .then((api) => runPickupMenu(api, () => JSON.parse(readFileSync(active, 'utf8')).pets.map((pet) => pet.id), abort.signal, warn))
+      .catch(() => { if (!abort.signal.aborted) warn(); });
     logger?.info?.('小团团已启用。');
 
     return () => {
@@ -105,7 +130,7 @@ export function apply(ctx) {
         if (regularFile(saved)) throw new Error('小团团停用备份已存在，保留当前配置以避免覆盖。');
         renameSync(active, saved);
       }
-      void refresh(AbortSignal.timeout(3000));
+      void refresh(AbortSignal.timeout(3000)).catch(warn);
       logger?.info?.('小团团已停用，设置与素材已保留。');
     };
   });
