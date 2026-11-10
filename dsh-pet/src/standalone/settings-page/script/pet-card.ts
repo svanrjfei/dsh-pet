@@ -6,7 +6,7 @@
  */
 
 /** 生成宠物卡片片段。 */
-export function petCardScript(): string {
+export function petCardScript(companion = false): string {
   return `
 function petBar() {
   const list = currentPets();
@@ -117,7 +117,7 @@ function petCard() {
       make('p', { class: 'fieldHint', text: '发给模型的 system = 这段 + 自动追加的名字与时间背景，别在这里重复写。' }),
     ]),
   ];
-  return card('宠物', '这里编辑的是 ' + (state.entry === 'main' ? '默认条目' : state.entry) + ' 的实例；改动在点保存后写盘。', children);
+  return card(${companion ? "'外观与互动', null" : "'宠物', '这里编辑的是 ' + (state.entry === 'main' ? '默认条目' : state.entry) + ' 的实例；改动在点保存后写盘。'"}, children);
 }
 
 /** 条目人设提示：占位符里放的就是条目人设正文，这里只说规则。 */

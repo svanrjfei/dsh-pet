@@ -38,6 +38,7 @@ function publicRead(req: IncomingMessage): boolean {
       '/',
       '/health',
       '/standalone-ai/',
+      '/xiaotuantuan/',
       '/standalone-ai/settings.js',
       '/standalone-ai/settings.css',
       '/standalone-ai/chat-panel.js',

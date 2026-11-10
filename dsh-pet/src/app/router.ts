@@ -73,7 +73,7 @@ export function startRouter(
         : url.pathname === candidate.path || url.pathname.startsWith(`${candidate.path}/`),
     );
     // 只有插件路由接受来自 file 渲染端的请求，且仍需它自己的凭证。
-    if (!deps.security.authorize(req, res, !!route)) return;
+    if (!deps.security.authorize(req, res, !!route && url.pathname !== '/xiaotuantuan/')) return;
     const method = req.method ?? 'GET';
     if (method === 'OPTIONS') {
       res.writeHead(204);

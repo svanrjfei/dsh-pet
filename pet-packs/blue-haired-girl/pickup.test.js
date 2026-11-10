@@ -77,3 +77,24 @@ test('菜单只响应自有宠物，重复点播取消旧等待，停用注销�
   assert.equal(calls.at(-1).signal.aborted, false);
   assert.deepEqual(warnings, []);
 });
+
+test('独立版设置菜单只响应小团团，退出仍注销菜单', async () => {
+  const abort = new AbortController();
+  let opened = 0;
+  let polls = 0;
+  const calls = [];
+  const api = async (route, options) => {
+    calls.push({ route, ...options });
+    if (route.startsWith('menu/events')) {
+      if (polls < 2) return { events: { '小团团·定时设置': ['other', 'own'][polls++] } };
+      abort.abort();
+      throw abort.signal.reason;
+    }
+    return {};
+  };
+  await assert.rejects(runPickupMenu(api, () => ['own'], abort.signal, assert.fail, () => opened++), { name: 'AbortError' });
+  assert.equal(opened, 1);
+  assert.deepEqual(calls[0].body.labels, ['小团团·接你下班', '小团团·定时设置']);
+  assert.equal(calls.at(-1).method, 'DELETE');
+  assert.ok(!calls.some(({ route }) => route.startsWith('anim?')));
+});

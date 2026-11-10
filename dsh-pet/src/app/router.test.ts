@@ -199,3 +199,34 @@ test('设置页对话面板脚本：产物缺失时 → 404 并提示重新构�
     await server.close();
   }
 });
+
+test('companion settings page is public but schedule data and writes require authentication', async () => {
+  const server = await start([
+    {
+      kind: 'exact',
+      path: '/xiaotuantuan/',
+      handler: (_req, res) => {
+        res.end('settings');
+      },
+    },
+    {
+      kind: 'exact',
+      path: '/xiaotuantuan/schedule',
+      handler: (_req, res) => {
+        res.end('{}');
+      },
+    },
+  ]);
+  try {
+    assert.equal((await fetch(server.base + '/xiaotuantuan/')).status, 200);
+    for (const method of ['GET', 'PUT']) {
+      const path = server.base + '/xiaotuantuan/schedule';
+      assert.equal((await fetch(path, { method })).status, 403);
+      const headers = { 'x-dsh-pet-token': server.security.token };
+      assert.equal((await fetch(path, { method, headers })).status, 200);
+      assert.equal((await fetch(path, { method, headers: { ...headers, origin: 'https://evil.test' } })).status, 403);
+    }
+  } finally {
+    await server.close();
+  }
+});

@@ -43,6 +43,11 @@ test('激活独立宠物，不修改 main 或其他宠物；停用保留设置�
   assert.equal(config.pets[0].name, '小团团');
   assert.deepEqual(config.animations.drag, ['拖拽悬空']);
   assert.deepEqual(config.animationWeights, { idle: 30, turn: 0, move: 0 });
+  assert.equal(Object.keys(config.memes).length, 18);
+  for (const meme of Object.keys(config.memes)) {
+    assert.deepEqual(readFileSync(join(f.petRoot, 'blue-haired-girl-memes', `${meme}.png`)),
+      readFileSync(new URL(`./pet/blue-haired-girl-memes/${meme}.png`, import.meta.url)));
+  }
   assert.deepEqual(readFileSync(f.video).subarray(0, 4), Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
   config.pets[0].size = 512;
   writeFileSync(f.config, JSON.stringify(config));
@@ -277,8 +282,8 @@ test('伸懒腰升级复用日常分类，保留权重与自定义素材；删�
   const actual = JSON.parse(readFileSync(f.config));
   assert.deepEqual(actual.pets, old.pets);
   assert.deepEqual(actual.animationWeights, old.animationWeights);
-  assert.deepEqual(actual.animations.categories, [{ id: '日常小动作', weight: 27, actions: ['已有动作', '超大伸懒腰', '哈欠连天', '悠闲哼歌', '东张西望', '玩游戏气急败坏', '大口吃零食'] }]);
-  assert.equal(actual._pluginVersion, '0.1.15');
+  assert.deepEqual(actual.animations.categories, [{ id: '日常小动作', weight: 27, actions: ['已有动作', '超大伸懒腰', '哈欠连天', '悠闲哼歌', '东张西望', '玩游戏气急败坏', '大口吃零食', '魔法换装-小猪睡衣'] }]);
+  assert.equal(actual._pluginVersion, '0.1.21');
   const video = join(f.petRoot, 'blue-haired-girl-animation', '超大伸懒腰.webm');
   assert.deepEqual(readFileSync(video).subarray(0, 4), Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
   actual.animations.categories[0].actions = ['已有动作'];
@@ -330,7 +335,7 @@ test('哈欠升级保留权重与角色，自定义素材不覆盖；再次启�
   const actual = JSON.parse(readFileSync(f.config));
   assert.deepEqual(actual.pets, old.pets);
   assert.deepEqual(actual.animationWeights, old.animationWeights);
-  assert.deepEqual(actual.animations.categories, [{ id: '日常小动作', weight: 27, actions: ['超大伸懒腰', '自定义动作', '哈欠连天', '悠闲哼歌', '东张西望', '玩游戏气急败坏', '大口吃零食'] }]);
+  assert.deepEqual(actual.animations.categories, [{ id: '日常小动作', weight: 27, actions: ['超大伸懒腰', '自定义动作', '哈欠连天', '悠闲哼歌', '东张西望', '玩游戏气急败坏', '大口吃零食', '魔法换装-小猪睡衣'] }]);
   const video = join(f.petRoot, 'blue-haired-girl-animation', '哈欠连天.webm');
   assert.deepEqual(readFileSync(video), readFileSync(new URL('./pet/blue-haired-girl-animation/哈欠连天.webm', import.meta.url)));
   writeFileSync(video, 'custom-yawn');
@@ -375,7 +380,7 @@ test('哼歌升级加入一次，保留权重和自定义素材，后续删除�
   const actual = JSON.parse(readFileSync(f.config));
   assert.deepEqual(actual.pets, old.pets);
   assert.deepEqual(actual.animationWeights, old.animationWeights);
-  assert.deepEqual(actual.animations.categories[0].actions, ['超大伸懒腰', '哈欠连天', '悠闲哼歌', '东张西望', '玩游戏气急败坏', '大口吃零食']);
+  assert.deepEqual(actual.animations.categories[0].actions, ['超大伸懒腰', '哈欠连天', '悠闲哼歌', '东张西望', '玩游戏气急败坏', '大口吃零食', '魔法换装-小猪睡衣']);
   const video = join(f.petRoot, 'blue-haired-girl-animation', '悠闲哼歌.webm');
   assert.deepEqual(readFileSync(video), readFileSync(new URL('./pet/blue-haired-girl-animation/悠闲哼歌.webm', import.meta.url)));
   writeFileSync(video, 'custom-humming');
@@ -426,7 +431,7 @@ test('东张西望只加入日常随机池，升级保留转向配置及自定�
   const actual = JSON.parse(readFileSync(f.config));
   assert.deepEqual(actual.animationWeights, old.animationWeights);
   assert.deepEqual(actual.animations.turn, old.animations.turn);
-  assert.deepEqual(actual.animations.categories[0].actions, ['超大伸懒腰', '哈欠连天', '悠闲哼歌', '东张西望', '玩游戏气急败坏', '大口吃零食']);
+  assert.deepEqual(actual.animations.categories[0].actions, ['超大伸懒腰', '哈欠连天', '悠闲哼歌', '东张西望', '玩游戏气急败坏', '大口吃零食', '魔法换装-小猪睡衣']);
   const video = join(f.petRoot, 'blue-haired-girl-animation', '东张西望.webm');
   assert.deepEqual(readFileSync(video), readFileSync(new URL('./pet/blue-haired-girl-animation/东张西望.webm', import.meta.url)));
   writeFileSync(video, 'custom-look');
@@ -448,7 +453,7 @@ test('游戏动画升级保留原动作与权重，不覆盖自定义素材或�
   const dispose = enable();
   const actual = JSON.parse(readFileSync(f.config));
   assert.deepEqual(actual.animationWeights, old.animationWeights);
-  assert.deepEqual(actual.animations.categories[0].actions, [...old.animations.categories[0].actions, '玩游戏气急败坏', '大口吃零食']);
+  assert.deepEqual(actual.animations.categories[0].actions, [...old.animations.categories[0].actions, '玩游戏气急败坏', '大口吃零食', '魔法换装-小猪睡衣']);
   assert.deepEqual(actual.pets, old.pets);
   const video = join(f.petRoot, 'blue-haired-girl-animation', '玩游戏气急败坏.webm');
   assert.deepEqual(readFileSync(video), readFileSync(new URL('./pet/blue-haired-girl-animation/玩游戏气急败坏.webm', import.meta.url)));
@@ -470,7 +475,7 @@ test('零食动画升级保留原动作与权重，不覆盖自定义素材或�
   const dispose = enable();
   const actual = JSON.parse(readFileSync(f.config));
   assert.deepEqual(actual.animationWeights, old.animationWeights);
-  assert.deepEqual(actual.animations.categories[0].actions, [...old.animations.categories[0].actions, '大口吃零食']);
+  assert.deepEqual(actual.animations.categories[0].actions, [...old.animations.categories[0].actions, '大口吃零食', '魔法换装-小猪睡衣']);
   assert.deepEqual(actual.pets, old.pets);
   const video = join(f.petRoot, 'blue-haired-girl-animation', '大口吃零食.webm');
   assert.deepEqual(readFileSync(video), readFileSync(new URL('./pet/blue-haired-girl-animation/大口吃零食.webm', import.meta.url)));
@@ -479,5 +484,198 @@ test('零食动画升级保留原动作与权重，不覆盖自定义素材或�
   const again = enable();
   assert.deepEqual(JSON.parse(readFileSync(f.config)), actual);
   assert.equal(readFileSync(video, 'utf8'), 'custom-snack');
+  again();
+});
+
+
+test('五秒待机升级保留配置与自定义同名素材，余额事件仍使用独立名称', (t) => {
+  const f = fixture(t);
+  const dispose = enable();
+  dispose();
+  const old = JSON.parse(readFileSync(f.saved));
+  old._pluginVersion = '0.1.15';
+  old.pets[0].size = 350;
+  writeFileSync(f.saved, JSON.stringify(old));
+  const balance = join(f.petRoot, 'blue-haired-girl-animation', '余额展示.webm');
+  assert.deepEqual(readFileSync(balance), readFileSync(f.video));
+  writeFileSync(f.video, 'custom-idle');
+  writeFileSync(balance, 'custom-balance');
+  const again = enable();
+  const actual = JSON.parse(readFileSync(f.config));
+  assert.deepEqual(actual, { ...old, _pluginVersion: '0.1.21' });
+  assert.deepEqual(actual.animations.idle, ['待机呼吸']);
+  assert.deepEqual(actual.animations.events.balance, ['余额展示']);
+  assert.equal(readFileSync(f.video, 'utf8'), 'custom-idle');
+  assert.equal(readFileSync(balance, 'utf8'), 'custom-balance');
+  again();
+});
+
+
+test('摸头开心升级只补入点击池，保留其他动作、自定义素材及后续清空设置', (t) => {
+  const f = fixture(t);
+  const old = JSON.parse(readFileSync(new URL('./pet/blue-haired-girl-config.json', import.meta.url)));
+  old._plugin = plugin.name;
+  old._pluginVersion = '0.1.16';
+  old.animations.clicks = ['自定义点击'];
+  writeFileSync(f.saved, JSON.stringify(old));
+  const dispose = enable();
+  const actual = JSON.parse(readFileSync(f.config));
+  assert.deepEqual(actual, {
+    ...old, _pluginVersion: '0.1.21',
+    animations: { ...old.animations, clicks: ['自定义点击', '点击回应-摸头开心', '点击回应-生气傲娇'] },
+  });
+  const video = join(f.petRoot, 'blue-haired-girl-animation', '点击回应-摸头开心.webm');
+  assert.deepEqual(readFileSync(video), readFileSync(new URL('./pet/blue-haired-girl-animation/点击回应-摸头开心.webm', import.meta.url)));
+  dispose();
+  const again = enable();
+  assert.deepEqual(JSON.parse(readFileSync(f.config)), actual);
+  actual.animations.clicks = [];
+  writeFileSync(f.config, JSON.stringify(actual));
+  writeFileSync(video, 'custom-headpat');
+  again();
+  const third = enable();
+  assert.deepEqual(JSON.parse(readFileSync(f.config)).animations.clicks, []);
+  assert.equal(readFileSync(video, 'utf8'), 'custom-headpat');
+  third();
+});
+
+
+test('魔法换装只进入日常随机池，保留点击动作、权重及用户自定义素材', (t) => {
+  const f = fixture(t);
+  const old = JSON.parse(readFileSync(new URL('./pet/blue-haired-girl-config.json', import.meta.url)));
+  old._plugin = plugin.name;
+  old._pluginVersion = '0.1.17';
+  old.animations.categories[0].actions = ['已有动作'];
+  old.animations.categories[0].weight = 27;
+  old.animations.clicks = ['点击回应-摸头开心', '自定义点击'];
+  writeFileSync(f.saved, JSON.stringify(old));
+  const dispose = enable();
+  const actual = JSON.parse(readFileSync(f.config));
+  const expected = structuredClone(old);
+  expected._pluginVersion = '0.1.21';
+  expected.animations.categories[0].actions.push('魔法换装-小猪睡衣');
+  expected.animations.clicks.push('点击回应-生气傲娇');
+  assert.deepEqual(actual, expected);
+  const video = join(f.petRoot, 'blue-haired-girl-animation', '魔法换装-小猪睡衣.webm');
+  assert.deepEqual(readFileSync(video), readFileSync(new URL('./pet/blue-haired-girl-animation/魔法换装-小猪睡衣.webm', import.meta.url)));
+  dispose();
+  const again = enable();
+  assert.deepEqual(JSON.parse(readFileSync(f.config)), actual);
+  actual.animations.categories[0].actions = ['已有动作'];
+  writeFileSync(f.config, JSON.stringify(actual));
+  writeFileSync(video, 'custom-outfit');
+  again();
+  const third = enable();
+  assert.deepEqual(JSON.parse(readFileSync(f.config)), actual);
+  assert.equal(readFileSync(video, 'utf8'), 'custom-outfit');
+  third();
+});
+
+test('独立应用直接接入菜单，不在引擎首次启动期间重载窗口', async (t) => {
+  fixture(t);
+  const calls = [];
+  const dispose = enable({ petRequest: async (route, options) => {
+    calls.push(route);
+    if (route.startsWith('menu/events')) return new Promise((resolve, reject) => {
+      options.signal.addEventListener('abort', () => reject(options.signal.reason), { once: true });
+    });
+    return {};
+  } });
+  await setImmediate();
+  assert.equal(calls[0], 'menu/item');
+  assert.ok(!calls.includes('reload'));
+  dispose();
+  await setImmediate();
+  assert.ok(calls.includes('reload'));
+});
+
+test('表情包升级补齐十八张，保留自定义图片和描述，删除配置后不重复添加', (t) => {
+  const f = fixture(t);
+  const old = { _plugin: plugin.name, _pluginVersion: '0.1.18', pets: [{ id: 'mine', size: 348 }],
+    memes: { '小团团-你好呀': '用户描述', '自己的表情': '用户自己的图片' } };
+  writeFileSync(f.saved, JSON.stringify(old));
+  const dir = join(f.petRoot, 'blue-haired-girl-memes');
+  mkdirSync(dir);
+  const custom = join(dir, '小团团-你好呀.png');
+  writeFileSync(custom, 'custom-image');
+  const dispose = enable();
+  const actual = JSON.parse(readFileSync(f.config));
+  assert.equal(actual._pluginVersion, '0.1.21');
+  assert.equal(Object.keys(actual.memes).length, 19);
+  assert.equal(actual.memes['小团团-你好呀'], '用户描述');
+  assert.equal(actual.memes['自己的表情'], '用户自己的图片');
+  assert.equal(readFileSync(custom, 'utf8'), 'custom-image');
+  assert.deepEqual(actual.pets, old.pets);
+  actual.memes = {};
+  writeFileSync(f.config, JSON.stringify(actual));
+  dispose();
+  const again = enable();
+  assert.deepEqual(JSON.parse(readFileSync(f.config)), actual);
+  again();
+});
+
+test('表情包目录及文件拒绝符号链接，不覆盖外部文件', (t) => {
+  const f = fixture(t);
+  const dir = join(f.petRoot, 'blue-haired-girl-memes');
+  const outside = join(f.home, 'outside-memes');
+  mkdirSync(outside);
+  symlinkSync(outside, dir, 'dir');
+  assert.throws(enable, /符号链接/);
+  rmSync(dir);
+  mkdirSync(dir);
+  const target = join(outside, 'keep.png');
+  writeFileSync(target, 'keep');
+  symlinkSync(target, join(dir, '小团团-你好呀.png'));
+  assert.throws(enable, /非普通文件/);
+  assert.equal(readFileSync(target, 'utf8'), 'keep');
+});
+
+test('第二组表情升级保留旧池删项、自定义描述及素材，重启不补回删项', (t) => {
+  const f = fixture(t);
+  const old = { _plugin: plugin.name, _pluginVersion: '0.1.19', pets: [{ id: 'mine', size: 348 }],
+    memes: { '小团团-你好呀': '旧描述', '小团团-谢谢': '自定义感谢' } };
+  writeFileSync(f.saved, JSON.stringify(old));
+  const dir = join(f.petRoot, 'blue-haired-girl-memes');
+  mkdirSync(dir);
+  const custom = join(dir, '小团团-谢谢.png');
+  writeFileSync(custom, 'custom-thanks');
+  const dispose = enable();
+  const actual = JSON.parse(readFileSync(f.config));
+  assert.equal(actual._pluginVersion, '0.1.21');
+  assert.equal(Object.keys(actual.memes).length, 10);
+  assert.equal(actual.memes['小团团-好耶'], undefined);
+  assert.equal(actual.memes['小团团-谢谢'], '自定义感谢');
+  assert.equal(readFileSync(custom, 'utf8'), 'custom-thanks');
+  assert.deepEqual(actual.pets, old.pets);
+  delete actual.memes['小团团-晚安'];
+  writeFileSync(f.config, JSON.stringify(actual));
+  dispose();
+  const again = enable();
+  assert.deepEqual(JSON.parse(readFileSync(f.config)), actual);
+  again();
+});
+
+test('生气傲娇仅升级点击池，保留随机池、用户设置与同名素材，后续清空不补回', (t) => {
+  const f = fixture(t);
+  const old = JSON.parse(readFileSync(new URL('./pet/blue-haired-girl-config.json', import.meta.url)));
+  old._plugin = plugin.name;
+  old._pluginVersion = '0.1.20';
+  old.animations.clicks = ['点击回应-摸头开心', '自定义点击'];
+  old.pets[0].size = 348;
+  writeFileSync(f.saved, JSON.stringify(old));
+  const dispose = enable();
+  const actual = JSON.parse(readFileSync(f.config));
+  assert.deepEqual(actual, { ...old, _pluginVersion: '0.1.21',
+    animations: { ...old.animations, clicks: [...old.animations.clicks, '点击回应-生气傲娇'] } });
+  assert.ok(!actual.animations.categories.some((c) => c.actions.includes('点击回应-生气傲娇')));
+  const video = join(f.petRoot, 'blue-haired-girl-animation', '点击回应-生气傲娇.webm');
+  assert.deepEqual(readFileSync(video), readFileSync(new URL('./pet/blue-haired-girl-animation/点击回应-生气傲娇.webm', import.meta.url)));
+  actual.animations.clicks = [];
+  writeFileSync(f.config, JSON.stringify(actual));
+  writeFileSync(video, 'custom-tsundere');
+  dispose();
+  const again = enable();
+  assert.deepEqual(JSON.parse(readFileSync(f.config)), actual);
+  assert.equal(readFileSync(video, 'utf8'), 'custom-tsundere');
   again();
 });

@@ -6,9 +6,10 @@
  * @module dsh-pet/src/app/main
  */
 
+import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { flattenPetList, readAllConfig } from '../host/config.ts';
 import { dshHomeDir } from '../host/helper-process.ts';
@@ -130,6 +131,12 @@ async function boot(): Promise<void> {
   process.env.DSH_PET_SITE_URL = security.authenticatedUrl(origin);
   if (!process.env.DSH_PET_SCALE) process.env.DSH_PET_SCALE = '1';
 
+  // 小团团独立包随应用携带适配器；普通 dsh-pet 应用不加载它。
+  const companion = join(packageRoot, 'xiaotuantuan', 'app.js');
+  if (existsSync(companion)) {
+    const { applyCompanion } = await import(pathToFileURL(companion).href);
+    applyCompanion({ context, origin, token: security.token });
+  }
   apply(context.ctx);
   log(`apply() 完成：routes=${routes.length} 失败=${context.failures.length}`);
 

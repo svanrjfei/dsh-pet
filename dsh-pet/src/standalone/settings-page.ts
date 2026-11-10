@@ -32,6 +32,8 @@ export { settingsPage, settingsStyle };
 /** 头像长边上限：与 client/settings/avatar-upload.ts 的 AVATAR_MAX_SIDE 对齐；页面脚本 import 不到，由测试钉住。 */
 export const AVATAR_MAX_SIDE_PX = 512;
 
+const companionSettings = process.env.DSH_PET_APP_NAME === '小团团';
+
 /** 整页脚本：公共层 + 控件 + 头像 + 宠物/全局/AI 三个面板 + 模型选择 + 启动。 */
 export const settingsScript = [
   '(function () {',
@@ -47,8 +49,8 @@ export const settingsScript = [
   widgetsScript(),
   overlayScript(),
   avatarScript({ logoUrl: LOGO_URL, maxSide: AVATAR_MAX_SIDE_PX }),
-  petCardScript(),
-  petsScript(),
+  petCardScript(companionSettings),
+  petsScript(companionSettings),
   globalsScript(),
   modelPickerScript(),
   aiScript(),

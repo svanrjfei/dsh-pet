@@ -7,8 +7,10 @@
  */
 
 /** 生成宠物面板片段。 */
-export function petsScript(): string {
+export function petsScript(companion = false): string {
   return `
+const COMPANION_SETTINGS = ${JSON.stringify(companion)};
+
 function cloneJson(value) {
   return JSON.parse(JSON.stringify(value));
 }
@@ -56,6 +58,7 @@ function pickGlobals(main) {
 }
 
 function initDrafts(config) {
+  const firstLoad = !state.config;
   state.config = config;
   state.globals = pickGlobals(config.main);
   state.pets = {};
@@ -67,6 +70,7 @@ function initDrafts(config) {
     if (typeof conf.whisperPrompt === 'string') state.prompts[key] = conf.whisperPrompt;
   }
   if (!state.pets.main) state.pets.main = [];
+  if (COMPANION_SETTINGS && firstLoad && state.pets['blue-haired-girl']) state.entry = 'blue-haired-girl';
   if (!state.pets[state.entry]) state.entry = 'main';
 }
 
@@ -79,7 +83,16 @@ function currentPet() {
 }
 
 function entryTabs(keys) {
-  const tabs = keys.map((key) => tabButton(key === 'main' ? '默认条目' : key, key === state.entry, () => {
+  const label = (key) => COMPANION_SETTINGS
+    ? (key === 'main' ? '全局设置' : key === 'blue-haired-girl' ? '小团团设置' : key)
+    : (key === 'main' ? '默认条目' : key);
+  const tabs = keys.map((key) => tabButton(label(key), key === state.entry, () => {
+    if (key === state.entry) return;
+    if (COMPANION_SETTINGS && state.dirty) {
+      setStatus(byId('pet-status'), '请先保存当前设置，再切换分区。', 'error');
+      return;
+    }
+    setStatus(byId('pet-status'), '');
     state.entry = key;
     state.petIndex = 0;
     renderPetsPanel();
@@ -98,11 +111,18 @@ function renderPetsPanel() {
   if (!host) return;
   host.textContent = '';
   const keys = Object.keys(state.pets);
+  if (COMPANION_SETTINGS) {
+    keys.sort((a, b) => (a === 'main' ? 1 : b === 'main' ? -1 : 0));
+    const aiForm = byId('settings');
+    if (aiForm) aiForm.hidden = state.entry !== 'main';
+    const save = byId('pet-save');
+    if (save) save.textContent = state.entry === 'main' ? '保存全局设置' : '保存小团团设置';
+  }
   if (keys.length > 1) host.append(entryTabs(keys));
-  host.append(petCard());
+  if (!COMPANION_SETTINGS || state.entry !== 'main') host.append(petCard());
   if (state.entry === 'main') {
     for (const builder of globalCards()) host.append(builder());
-  } else {
+  } else if (!COMPANION_SETTINGS) {
     host.append(packNote());
   }
 }

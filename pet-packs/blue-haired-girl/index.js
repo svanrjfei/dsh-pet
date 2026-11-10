@@ -53,8 +53,11 @@ async function connectPetApi(webServer, connection, signal) {
 
 export function apply(ctx) {
   const { webServer, connection, logger } = ctx;
+  // Cordis 会拦截未知服务属性；独立应用的附加接口只从自有属性读取。
+  const petRequest = Object.hasOwn(ctx, 'petRequest') ? ctx.petRequest : undefined;
+  const openScheduleSettings = Object.hasOwn(ctx, 'openScheduleSettings') ? ctx.openScheduleSettings : undefined;
   const refresh = async (signal) => {
-    const api = await connectPetApi(webServer, connection, signal);
+    const api = petRequest ?? await connectPetApi(webServer, connection, signal);
     await api('reload', { method: 'POST', signal });
     return api;
   };
@@ -67,18 +70,28 @@ export function apply(ctx) {
     const hasActive = ownedConfig(active);
     const hasSaved = ownedConfig(saved);
     if (hasActive && hasSaved) throw new Error('小团团存在两份配置，请先保留需要的一份再启用。');
+    const defaults = JSON.parse(readFileSync(join(source, `${prefix}-config.json`), 'utf8'));
+    const memeDir = join(petRoot, `${prefix}-memes`);
+    mkdirSync(memeDir, { recursive: true });
+    if (!lstatSync(memeDir).isDirectory()) throw new Error('小团团表情包目录不能是符号链接。');
+    for (const meme of Object.keys(defaults.memes)) {
+      const target = join(memeDir, `${meme}.png`);
+      if (!regularFile(target)) copyFileSync(join(source, `${prefix}-memes`, `${meme}.png`), target, constants.COPYFILE_EXCL);
+    }
 
     mkdirSync(animationDir, { recursive: true });
     if (!lstatSync(animationDir).isDirectory()) throw new Error('小团团素材目录不能是符号链接。');
-    for (const filename of ['待机呼吸.webm', '余额展示.webm', '拖拽悬空.webm', '接你下班.webm', '超大伸懒腰.webm', '哈欠连天.webm', '悠闲哼歌.webm', '东张西望.webm', '玩游戏气急败坏.webm', '大口吃零食.webm']) {
+    for (const filename of ['待机呼吸.webm', '余额展示.webm', '拖拽悬空.webm', '接你下班.webm', '超大伸懒腰.webm', '哈欠连天.webm', '悠闲哼歌.webm', '东张西望.webm', '玩游戏气急败坏.webm', '大口吃零食.webm', '点击回应-摸头开心.webm', '魔法换装-小猪睡衣.webm', '点击回应-生气傲娇.webm']) {
       const video = join(animationDir, filename);
       const bundled = join(source, `${prefix}-animation`, filename);
       if (!regularFile(video)) {
         copyFileSync(bundled, video, constants.COPYFILE_EXCL);
-      } else if (filename === '拖拽悬空.webm' &&
-        createHash('sha256').update(readFileSync(video)).digest('hex') ===
-          '7041f30333a828ff865c3d68ebe6a03b7f3a260397bea96ae75c1158ac351a33') {
-        // 只更新 0.1.1 原装素材，用户替换过的同名动画保持不变。
+      } else if (createHash('sha256').update(readFileSync(video)).digest('hex') === {
+        '拖拽悬空.webm': '7041f30333a828ff865c3d68ebe6a03b7f3a260397bea96ae75c1158ac351a33',
+        '待机呼吸.webm': 'f7dc20a1129f716df9fade31f50c73a709cbba0b6465cf98c1e8a6b188703db4',
+        '余额展示.webm': 'f7dc20a1129f716df9fade31f50c73a709cbba0b6465cf98c1e8a6b188703db4',
+      }[filename]) {
+        // 只更新已知旧版原装素材，保留用户替换过的同名动画。
         const temporary = `${video}.upgrade`;
         copyFileSync(bundled, temporary, constants.COPYFILE_EXCL);
         renameSync(temporary, video);
@@ -203,6 +216,50 @@ export function apply(ctx) {
         config._pluginVersion = '0.1.15';
         changed = true;
       }
+      if (config._pluginVersion === '0.1.15') {
+        config._pluginVersion = '0.1.16';
+        changed = true;
+      }
+      if (config._pluginVersion === '0.1.16') {
+        config.animations ??= {};
+        config.animations.clicks ??= [];
+        if (!config.animations.clicks.includes('点击回应-摸头开心')) config.animations.clicks.push('点击回应-摸头开心');
+        config._pluginVersion = '0.1.17';
+        changed = true;
+      }
+      if (config._pluginVersion === '0.1.17') {
+        config.animations ??= {};
+        config.animations.categories ??= [];
+        if (!config.animations.categories.some((category) => category.actions?.includes('魔法换装-小猪睡衣'))) {
+          const daily = config.animations.categories.find((category) => category.id === '日常小动作');
+          if (daily) daily.actions.push('魔法换装-小猪睡衣');
+          else config.animations.categories.unshift({ id: '日常小动作', weight: 10, actions: ['魔法换装-小猪睡衣'] });
+        }
+        config._pluginVersion = '0.1.18';
+        changed = true;
+      }
+      if (config._pluginVersion === '0.1.18') {
+        config.memes = { ...defaults.memes, ...config.memes };
+        config._pluginVersion = '0.1.19';
+        changed = true;
+      }
+      if (config._pluginVersion === '0.1.19') {
+        config.memes ??= {};
+        // 只补第二组，不恢复用户已移除的第一组条目。
+        for (const label of ['谢谢', '抱抱', '加油', '疑惑', '震惊', '偷笑', '对不起', '晚安', '我来啦']) {
+          const key = `小团团-${label}`;
+          if (!Object.hasOwn(config.memes, key)) config.memes[key] = defaults.memes[key];
+        }
+        config._pluginVersion = '0.1.20';
+        changed = true;
+      }
+      if (config._pluginVersion === '0.1.20') {
+        config.animations ??= {};
+        config.animations.clicks ??= [];
+        if (!config.animations.clicks.includes('点击回应-生气傲娇')) config.animations.clicks.push('点击回应-生气傲娇');
+        config._pluginVersion = '0.1.21';
+        changed = true;
+      }
       if (changed) {
         const temporary = `${existing}.upgrade`;
         writeFileSync(temporary, JSON.stringify(config, null, 2) + '\n', { flag: 'wx' });
@@ -212,17 +269,17 @@ export function apply(ctx) {
     // 先放完整素材，再让 dsh-pet 扫描到配置；再次启用保留用户改过的名称、大小和位置。
     if (hasSaved) renameSync(saved, active);
     else if (!hasActive) {
-      const config = JSON.parse(readFileSync(join(source, `${prefix}-config.json`), 'utf8'));
-      writeFileSync(active, JSON.stringify({ ...config, _plugin: name, _pluginVersion: '0.1.15' }, null, 2) + '\n', { flag: 'wx' });
+      writeFileSync(active, JSON.stringify({ ...defaults, _plugin: name, _pluginVersion: '0.1.21' }, null, 2) + '\n', { flag: 'wx' });
     }
     const schedule = createScheduleStore(join(petRoot, '../xiaotuantuan-schedule.json'));
     const unregisterSchedule = webServer.register({ kind: 'exact', path: schedulePath, handler: scheduleRoute(schedule, connection) });
     const pets = () => JSON.parse(readFileSync(active, 'utf8')).pets;
     const abort = new AbortController();
-    void refresh(AbortSignal.any([abort.signal, AbortSignal.timeout(3000)]))
+    // 独立应用在引擎启动前装入素材，无需刷新尚在加载的首个窗口。
+    void (petRequest ? Promise.resolve(petRequest) : refresh(AbortSignal.any([abort.signal, AbortSignal.timeout(3000)])))
       .then((api) => {
         startSchedule(schedule, api, pets, abort.signal, () => logger?.warn?.('小团团定时播放失败，请检查桌宠是否可用。'));
-        return runPickupMenu(api, () => pets().map((pet) => pet.id), abort.signal, warn);
+        return runPickupMenu(api, () => pets().map((pet) => pet.id), abort.signal, warn, openScheduleSettings);
       })
       .catch(() => { if (!abort.signal.aborted) warn(); });
     logger?.info?.('小团团已启用。');

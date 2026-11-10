@@ -183,18 +183,14 @@ PetSprite.prototype.clearWhisper = function clearWhisper() {
 // 碎碎念展示（本宠物）：随机抽 events.whisper 动画 + 弹文本气泡（与余额同一套定时语义）。
 // image 是 host 随机抽定的配图名；url 是第三方自带的完整地址：两者二选一（host 判定层保证），
 // 由字段名区分、不靠嗅探。anim === false 时整段跳过动画联动（不查池、不换源、不 stopMove），
-// 于是缺 events.whisper 时只弹气泡也走得通。duration === 0 表示这一条不显示，且不动当前气泡
+// 未配置 events.whisper 时也只弹气泡。duration === 0 表示这一条不显示，且不动当前气泡
 // （要收起请用 POST /bubble/clear，两件事不重叠）。
 PetSprite.prototype.showWhisper = function showWhisper(text, image, url, duration, anim) {
   let name = null;
   if (anim !== false) {
     const pool = this.animations.events?.whisper;
-    if (!pool || pool.length === 0) {
-      console.error('[dsh-pet] 配置缺少 animations.events.whisper，无法播放碎碎念动画');
-      return;
-    }
-    // 整池随机抽 1 槽（避开当前正播动画，避免连续重复）；槽位若为数组候选再档内随机（与浏览器一致）
-    name = S.pickSlot(S.pick(pool, this.anim), this.anim);
+    // 没有专用动作时仍显示气泡，不打断当前动画。
+    if (pool && pool.length > 0) name = S.pickSlot(S.pick(pool, this.anim), this.anim);
   }
   console.log(
     '[dsh-pet] ' +

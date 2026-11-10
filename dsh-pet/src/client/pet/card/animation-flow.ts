@@ -181,12 +181,8 @@ export function createAnimationFlow(rt: AnimationFlowRuntime) {
       // 睡着时只弹气泡、不换动画：梦话与命令气泡都要显示，但睡姿不能被打断
       if (anim !== false && !sleeping()) {
         const pool = hub.anims().events?.whisper;
-        if (!pool || pool.length === 0) {
-          console.error('[dsh-pet] 配置缺少 animations.events.whisper，无法播放碎碎念动画');
-          return;
-        }
-        // 整池随机抽 1 槽并避开当前正播动画；槽位为数组时再在档内随机。
-        name = pickSlot(pick(pool, card.animRef.current), card.animRef.current);
+        // 没有专用动作时仍显示气泡，不打断当前动画。
+        if (pool && pool.length > 0) name = pickSlot(pick(pool, card.animRef.current), card.animRef.current);
       }
       log(hub.cfg().id, 'whisper' + (name === null ? ' （不联动动画）' : ' -> [' + name + ']') + ' 「' + text + '」');
       // 先起动画：动画与气泡时长是两个独立参数。
