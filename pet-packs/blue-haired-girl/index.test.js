@@ -283,7 +283,7 @@ test('伸懒腰升级复用日常分类，保留权重与自定义素材；删�
   assert.deepEqual(actual.pets, old.pets);
   assert.deepEqual(actual.animationWeights, old.animationWeights);
   assert.deepEqual(actual.animations.categories, [{ id: '日常小动作', weight: 27, actions: ['已有动作', '超大伸懒腰', '哈欠连天', '悠闲哼歌', '东张西望', '玩游戏气急败坏', '大口吃零食', '魔法换装-小猪睡衣'] }]);
-  assert.equal(actual._pluginVersion, '0.1.21');
+  assert.equal(actual._pluginVersion, '0.1.22');
   const video = join(f.petRoot, 'blue-haired-girl-animation', '超大伸懒腰.webm');
   assert.deepEqual(readFileSync(video).subarray(0, 4), Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
   actual.animations.categories[0].actions = ['已有动作'];
@@ -502,7 +502,7 @@ test('五秒待机升级保留配置与自定义同名素材，余额事件仍�
   writeFileSync(balance, 'custom-balance');
   const again = enable();
   const actual = JSON.parse(readFileSync(f.config));
-  assert.deepEqual(actual, { ...old, _pluginVersion: '0.1.21' });
+  assert.deepEqual(actual, { ...old, _pluginVersion: '0.1.22' });
   assert.deepEqual(actual.animations.idle, ['待机呼吸']);
   assert.deepEqual(actual.animations.events.balance, ['余额展示']);
   assert.equal(readFileSync(f.video, 'utf8'), 'custom-idle');
@@ -521,7 +521,7 @@ test('摸头开心升级只补入点击池，保留其他动作、自定义素�
   const dispose = enable();
   const actual = JSON.parse(readFileSync(f.config));
   assert.deepEqual(actual, {
-    ...old, _pluginVersion: '0.1.21',
+    ...old, _pluginVersion: '0.1.22',
     animations: { ...old.animations, clicks: ['自定义点击', '点击回应-摸头开心', '点击回应-生气傲娇'] },
   });
   const video = join(f.petRoot, 'blue-haired-girl-animation', '点击回应-摸头开心.webm');
@@ -552,7 +552,7 @@ test('魔法换装只进入日常随机池，保留点击动作、权重及用�
   const dispose = enable();
   const actual = JSON.parse(readFileSync(f.config));
   const expected = structuredClone(old);
-  expected._pluginVersion = '0.1.21';
+  expected._pluginVersion = '0.1.22';
   expected.animations.categories[0].actions.push('魔法换装-小猪睡衣');
   expected.animations.clicks.push('点击回应-生气傲娇');
   assert.deepEqual(actual, expected);
@@ -600,7 +600,7 @@ test('表情包升级补齐十八张，保留自定义图片和描述，删除�
   writeFileSync(custom, 'custom-image');
   const dispose = enable();
   const actual = JSON.parse(readFileSync(f.config));
-  assert.equal(actual._pluginVersion, '0.1.21');
+  assert.equal(actual._pluginVersion, '0.1.22');
   assert.equal(Object.keys(actual.memes).length, 19);
   assert.equal(actual.memes['小团团-你好呀'], '用户描述');
   assert.equal(actual.memes['自己的表情'], '用户自己的图片');
@@ -641,7 +641,7 @@ test('第二组表情升级保留旧池删项、自定义描述及素材，重�
   writeFileSync(custom, 'custom-thanks');
   const dispose = enable();
   const actual = JSON.parse(readFileSync(f.config));
-  assert.equal(actual._pluginVersion, '0.1.21');
+  assert.equal(actual._pluginVersion, '0.1.22');
   assert.equal(Object.keys(actual.memes).length, 10);
   assert.equal(actual.memes['小团团-好耶'], undefined);
   assert.equal(actual.memes['小团团-谢谢'], '自定义感谢');
@@ -665,7 +665,7 @@ test('生气傲娇仅升级点击池，保留随机池、用户设置与同名�
   writeFileSync(f.saved, JSON.stringify(old));
   const dispose = enable();
   const actual = JSON.parse(readFileSync(f.config));
-  assert.deepEqual(actual, { ...old, _pluginVersion: '0.1.21',
+  assert.deepEqual(actual, { ...old, _pluginVersion: '0.1.22',
     animations: { ...old.animations, clicks: [...old.animations.clicks, '点击回应-生气傲娇'] } });
   assert.ok(!actual.animations.categories.some((c) => c.actions.includes('点击回应-生气傲娇')));
   const video = join(f.petRoot, 'blue-haired-girl-animation', '点击回应-生气傲娇.webm');
@@ -678,4 +678,34 @@ test('生气傲娇仅升级点击池，保留随机池、用户设置与同名�
   assert.deepEqual(JSON.parse(readFileSync(f.config)), actual);
   assert.equal(readFileSync(video, 'utf8'), 'custom-tsundere');
   again();
+});
+
+test('碎碎念动画仅补缺省事件池，保留自定义动作、关闭设置和同名素材', (t) => {
+  const f = fixture(t);
+  for (const whisper of [undefined, [], ['自定义说话']]) {
+    const old = JSON.parse(readFileSync(new URL('./pet/blue-haired-girl-config.json', import.meta.url)));
+    old._plugin = plugin.name;
+    old._pluginVersion = '0.1.21';
+    old.pets[0].whisperEnabled = false;
+    if (whisper === undefined) delete old.animations.events.whisper;
+    else old.animations.events.whisper = whisper;
+    writeFileSync(f.saved, JSON.stringify(old));
+    const dispose = enable();
+    const actual = JSON.parse(readFileSync(f.config));
+    assert.deepEqual(actual, { ...old, _pluginVersion: '0.1.22', animations: {
+      ...old.animations, events: { ...old.animations.events, whisper: whisper ?? ['碎碎念-开心聊天'] },
+    } });
+    assert.ok(!actual.animations.clicks.includes('碎碎念-开心聊天'));
+    assert.ok(!actual.animations.categories.some((c) => c.actions.includes('碎碎念-开心聊天')));
+    const video = join(f.petRoot, 'blue-haired-girl-animation', '碎碎念-开心聊天.webm');
+    assert.ok(existsSync(video));
+    writeFileSync(video, 'custom-whisper');
+    actual.animations.events.whisper = [];
+    writeFileSync(f.config, JSON.stringify(actual));
+    dispose();
+    const again = enable();
+    assert.deepEqual(JSON.parse(readFileSync(f.config)), actual);
+    assert.equal(readFileSync(video, 'utf8'), 'custom-whisper');
+    again();
+  }
 });

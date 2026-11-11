@@ -25,7 +25,7 @@
       { "id": "日常小动作", "weight": 10, "actions": ["超大伸懒腰", "哈欠连天", "悠闲哼歌", "东张西望", "玩游戏气急败坏", "大口吃零食", "魔法换装-小猪睡衣"] },
       { "id": "小团团出行", "weight": 0, "noMirror": true, "actions": ["接你下班"] }
     ],
-    "events": { "balance": ["余额展示"] }
+    "events": { "balance": ["余额展示"], "whisper": ["碎碎念-开心聊天"] }
   },
   "animationWeights": { "idle": 30, "turn": 0, "move": 0 },
   "memes": {
